@@ -204,7 +204,7 @@ function restoreFromMemory() {
         statusDiv.innerText = "🔍 Checking Server State...";
         document.body.appendChild(statusDiv);
 
-        fetch('https://phishingshield.onrender.com/api/reports')
+        fetch('http://localhost:3000/api/reports')
             .then(res => res.json())
             .then(serverReports => {
                 // map existing IDs for fast lookup
@@ -249,7 +249,7 @@ function restoreFromMemory() {
                     }
 
                     const report = missingReports[index];
-                    fetch('https://phishingshield.onrender.com/api/reports', {
+                    fetch('http://localhost:3000/api/reports', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(report)
@@ -279,7 +279,7 @@ function restoreFromMemory() {
 async function checkAdminAccess() {
     const lockScreen = document.getElementById('lock-screen');
     const lockStatus = document.getElementById('lock-status');
-    const API_BASE = "https://phishingshield.onrender.com/api";
+    const API_BASE = "http://localhost:3000/api";
 
     if (!lockScreen) return;
 
@@ -511,6 +511,8 @@ function loadDashboardData() {
                     }
                     return res.json();
                 })
+            fetch('http://localhost:3000/api/reports')
+                .then(res => res.json())
                 .then(serverReports => {
                     console.log("[Admin] Fetched Global Reports:", serverReports);
                     console.log("[Admin] Number of reports:", Array.isArray(serverReports) ? serverReports.length : 'Not an array');
@@ -534,7 +536,7 @@ function loadDashboardData() {
                             // We'll just push them back effectively.
                             let restoredCount = 0;
                             cached.forEach(report => {
-                                fetch('https://phishingshield.onrender.com/api/reports', {
+                                fetch('http://localhost:3000/api/reports', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(report)
@@ -610,7 +612,7 @@ function loadDashboardData() {
 
     // 1. Fetch Users logic with Auto-Restore
     const fetchUsers = () => {
-        return fetch('https://phishingshield.onrender.com/api/users')
+        return fetch('http://localhost:3000/api/users')
             .then(res => res.json())
             .then(serverUsers => {
                 console.log("[Admin] Fetched Global Users:", serverUsers.length);
@@ -632,7 +634,7 @@ function loadDashboardData() {
                             // Restore execution
                             let restored = 0;
                             const promises = cached.map(u => {
-                                return fetch('https://phishingshield.onrender.com/api/users/sync', {
+                                return fetch('http://localhost:3000/api/users/sync', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(u)
@@ -658,7 +660,7 @@ function loadDashboardData() {
                             if (missing.length > 0) {
                                 console.log(`[Admin] Restoring ${missing.length} missing users`);
                                 missing.forEach(u => {
-                                    fetch('https://phishingshield.onrender.com/api/users/sync', {
+                                    fetch('http://localhost:3000/api/users/sync', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify(u)
@@ -910,7 +912,7 @@ window.banSite = async function (url, reportId) {
         console.log('[Admin] User confirmed ban, proceeding...');
 
         // Update status on server first and WAIT for response
-        const response = await fetch('https://phishingshield.onrender.com/api/reports/update', {
+        const response = await fetch('http://localhost:3000/api/reports/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: reportId, status: 'banned' })
@@ -1009,7 +1011,7 @@ window.ignoreReport = async function (url, reportId) {
 
     try {
         // Update status on server AND WAIT for it
-        const response = await fetch('https://phishingshield.onrender.com/api/reports/update', {
+        const response = await fetch('http://localhost:3000/api/reports/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: reportId, status: 'ignored' })
@@ -1062,7 +1064,7 @@ window.unbanSite = async function (url, reportId) {
         console.log('[Admin] User confirmed unban, proceeding...');
 
         // Update status on server and WAIT for response
-        const response = await fetch('https://phishingshield.onrender.com/api/reports/update', {
+        const response = await fetch('http://localhost:3000/api/reports/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: reportId, status: 'pending' })
@@ -1295,7 +1297,7 @@ function renderUsers(users, allLogs) {
                     // Sync Logic
                     const updatedUser = { ...user, xp: newXP, level: Math.floor(Math.sqrt(newXP / 100)) + 1 };
 
-                    fetch('https://phishingshield.onrender.com/api/users/sync', {
+                    fetch('http://localhost:3000/api/users/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updatedUser)
@@ -1324,7 +1326,7 @@ function renderUsers(users, allLogs) {
                 deleteUserBtn.style.borderColor = '#dc3545';
                 deleteUserBtn.onclick = () => {
                     if (confirm(`Delete ${name}? This cannot be undone.`)) {
-                        fetch('https://phishingshield.onrender.com/api/users/delete', {
+                        fetch('http://localhost:3000/api/users/delete', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ email: email })
@@ -1366,7 +1368,7 @@ function loadBannedSites() {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
 
     // Fetch from server to get global banned sites
-    fetch('https://phishingshield.onrender.com/api/reports')
+    fetch('http://localhost:3000/api/reports')
         .then(res => res.json())
         .then(serverReports => {
             // Filter for banned sites from server (global bans)
@@ -1464,6 +1466,79 @@ function openReportModal(report) {
     if (status === 'banned') statusContainer.innerHTML = '<span class="badge" style="background:#dc3545; color:white">🚫 BANNED</span>';
     else if (status === 'ignored') statusContainer.innerHTML = '<span class="badge" style="background:#6c757d; color:white">IGNORED</span>';
     else statusContainer.innerHTML = '<span class="badge" style="background:#ffc107; color:black">PENDING REVIEW</span>';
+
+    // --- AI ANALYSIS LOGIC ---
+    const aiLoading = document.getElementById('ai-loading');
+    const aiResult = document.getElementById('ai-result-container');
+    const aiAction = document.getElementById('ai-action-container');
+    const btnRunAI = document.getElementById('btn-run-ai');
+
+    // Reset UI
+    aiLoading.style.display = 'none';
+    aiResult.style.display = 'none';
+    aiAction.style.display = 'none';
+
+    // ALWAYS show the Action Button first, never auto-show result
+    aiAction.style.display = 'block';
+
+    // Logic: If we have data, we just "reveal" it. If not, we fetch it.
+    btnRunAI.onclick = () => {
+        aiAction.style.display = 'none';
+
+        if (report.aiAnalysis) {
+            // Just Reveal Existing Data
+            renderAIResult(report.aiAnalysis);
+            return;
+        }
+
+        // Else, Fetch New Data
+        aiLoading.style.display = 'block';
+        fetch('http://localhost:3000/api/reports/ai-verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: report.id })
+        })
+            .then(res => res.json())
+            .then(data => {
+                aiLoading.style.display = 'none';
+                if (data.success && data.aiAnalysis) {
+                    report.aiAnalysis = data.aiAnalysis;
+                    renderAIResult(report.aiAnalysis);
+                } else {
+                    alert("AI Analysis Failed: " + (data.error || 'Unknown Error'));
+                    aiAction.style.display = 'block'; // Reset
+                }
+            })
+            .catch(err => {
+                aiLoading.style.display = 'none';
+                aiAction.style.display = 'block';
+                alert("Network Error during AI Scan.");
+            });
+    };
+
+    function renderAIResult(analysis) {
+        aiResult.style.display = 'block';
+        const score = analysis.phishing_risk_score || analysis.score || 0;
+        const suggestion = analysis.suggestion;
+
+        document.getElementById('ai-score').textContent = `Risk Score: ${score}/100`;
+        document.getElementById('ai-reason').textContent = analysis.reason || "Analysis completed.";
+
+        const badge = document.getElementById('ai-badge');
+        badge.textContent = `AI: ${suggestion}`;
+
+        if (suggestion === 'BAN') {
+            badge.style.background = '#fee2e2';
+            badge.style.color = '#dc2626';
+        } else if (suggestion === 'CAUTION') {
+            badge.style.background = '#fef3c7';
+            badge.style.color = '#d97706';
+        } else {
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#166534';
+        }
+    }
+
 
     // Footer Actions
     const footer = document.getElementById('report-modal-footer');
@@ -1690,3 +1765,20 @@ function handleClearTrust() {
         });
 }
 
+// --- LOGOUT LOGIC (Moved from inline script) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const userPanel = document.querySelector('.user-panel');
+    if (userPanel && !document.getElementById('admin-logout-btn')) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.id = 'admin-logout-btn';
+        logoutBtn.textContent = 'Logout';
+        logoutBtn.style.cssText = 'margin-top: 10px; width: 100%; padding: 8px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;';
+        logoutBtn.onclick = () => {
+            chrome.storage.local.remove(['adminToken', 'adminTokenExpiry', 'adminUser'], () => {
+                const adminLoginUrl = chrome.runtime?.getURL ? chrome.runtime.getURL('admin-login.html') : 'admin-login.html';
+                window.location.href = adminLoginUrl;
+            });
+        };
+        userPanel.appendChild(logoutBtn);
+    }
+});

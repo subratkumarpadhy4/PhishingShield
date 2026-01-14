@@ -147,7 +147,16 @@ function initRiskAnalysis(isFortressMode) {
             analysis.reasons.push("🛡️ Fortress Mode: Security Tightened (+25)");
             if (analysis.score > 100) analysis.score = 100;
         }
+        // Listen for request to get current analysis
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            if (request.type === "GET_RISK_ANALYSIS") {
+                // If we have analysis, send it back
+                // analysis variable is global in this scope
+                sendResponse(analysis);
+            }
+        });
 
+        // Initial Analysis
         console.log("PhishingShield Risk Analysis:", analysis);
 
         // Cap score at 100
@@ -222,8 +231,8 @@ function initRiskAnalysis(isFortressMode) {
         });
 
         // Fortress Mode: Show HUD for ALMOST EVERYTHING (Score > 0)
-        // Standard Mode: Show HUD for Low Risk (Score > 10)
-        const threshold = isFortressMode ? 0 : 10;
+        // Standard Mode: Show HUD for Low/Moderate Risk (Score >= 20)
+        const threshold = isFortressMode ? 0 : 19;
 
         if (analysis.score < 20) {
             // Award 10 XP for safe site browsing
@@ -274,8 +283,64 @@ function initRiskAnalysis(isFortressMode) {
             });
         }
 
-        if (analysis.score > threshold) {
+
+
+        if (analysis.score > threshold && analysis.score > 0) {
             showRiskHUD(analysis);
+        }
+
+        // --- PHASE 2: REAL AI VERIFICATION (Async) ---
+        if (true) {
+            console.log("[Content] Initiating Real AI Scan...");
+            chrome.runtime.sendMessage({
+                type: "SCAN_CONTENT",
+                url: window.location.href,
+                content: document.body.innerText.substring(0, 5000)
+            }, (res) => {
+                if (chrome.runtime.lastError) return;
+                if (res && res.error) console.error("AI Error:", res.error);
+
+                if (res && res.aiAnalysis) {
+
+                    console.log("[Content] AI Scan Returned:", res.aiAnalysis);
+                    const aiScore = res.aiAnalysis.score || 0;
+
+                    // Only show AI result if it's SIGNIFICANT (>= 20) or CONFIRMS a higher risk
+                    // If it's just "Safe" (< 20), keep it hidden
+                    if (aiScore < 20 && analysis.score < 20) {
+                        console.log("[Content] AI confirms risk is safe (both AI and Page scores < 20), staying hidden.");
+                        return;
+                    }
+
+                    // ALWAYS update to show AI verification
+                    console.log("[Content] Updating HUD with AI Result");
+
+                    // Merge Results
+                    analysis.score = Math.max(analysis.score, aiScore);
+
+                    // Avoid duplicate entries
+                    const aiMsg = `🤖 Real AI Analysis: ${res.aiAnalysis.suggestion} (+${aiScore})`;
+                    let duplicate = false;
+                    for (let r of analysis.reasons) { if (r.includes('Real AI Analysis')) duplicate = true; }
+
+                    if (!duplicate) {
+                        analysis.reasons.push(aiMsg);
+                        analysis.reasons.push(`${res.aiAnalysis.reason}`);
+                    }
+
+                    if (aiScore > 80) analysis.primaryThreat = "AI CONFIRMED THREAT";
+                    else if (aiScore > 50) analysis.primaryThreat = "Suspicious Content (AI)";
+
+                    // Re-render HUD
+                    showRiskHUD(analysis);
+
+                    // AUTO-EXPAND DETAILS to show the user the AI result immediately
+                    setTimeout(() => {
+                        const panel = document.getElementById('hud-details-panel');
+                        if (panel) panel.style.display = 'block';
+                    }, 500);
+                }
+            });
         }
     }, 1500);
 }
@@ -388,17 +453,26 @@ function initLinkPreview() {
                 const isSearchEngine = /google|bing|yahoo|duckduckgo/.test(hostname);
 
                 if (!isSearchEngine) {
-                    // Strict Check: Only flag if the text is EXPLICITLY a domain name (e.g., "google.com")
-                    // AND nothing else. If it contains spaces, newlines, or extra words, ignore it.
-                    // Regex: Starts with alphanumeric, has dot, ends with alphanumeric (2+ chars). No whitespace.
-                    const isStrictDomain = /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/.test(text);
+                    // Mismatch Logic:
+                    // If the visual text LOOKS like a URL (e.g. "paypal.com", "login.secure.net")
+                    // BUT the actual href goes somewhere else, flag it.
 
-                    if (isStrictDomain) {
-                        if (!href.includes(text)) {
-                            // e.g. Text is "google.com" but href is "evil.com"
-                            isSuspicious = true;
-                            tooltipText += `\n(⚠️ Text '${text}' does not match destination!)`;
-                        }
+                    // Regex for "URL-like" text (contains a dot, no spaces)
+                    const isUrlLike = /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$/.test(text);
+
+                    if (isUrlLike) {
+                        try {
+                            // Normalize both visual and actual URL for comparison
+                            const visualDomain = text.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '');
+                            const actualDomain = url.hostname.replace(/^www\./, '');
+
+                            // If visual text is "google.com" but actual link is "evil.com" -> SUSPICIOUS
+                            // We use 'includes' generously to allow subdomains, but flag if totally different
+                            if (!actualDomain.includes(visualDomain) && !visualDomain.includes(actualDomain)) {
+                                isSuspicious = true;
+                                tooltipText += `\n⚠️ DECEPTIVE LINK: Text says "${text}" but goes to "${actualDomain}"`;
+                            }
+                        } catch (e) { }
                     }
                 }
 
@@ -689,14 +763,20 @@ function showRiskHUD(analysis) {
     });
 
     // Toggle Details
-    document.getElementById('hud-info').addEventListener('click', (e) => {
+    const infoBtn = document.getElementById('hud-info');
+    infoBtn.addEventListener('click', (e) => {
         const panel = document.getElementById('hud-details-panel');
+        // Prevent event bubbling issues
+        e.stopPropagation();
+
         if (panel.style.display === 'block') {
             panel.style.display = 'none';
-            e.target.style.color = '#aaa';
+            infoBtn.style.color = '#aaa';
+            infoBtn.style.background = 'none';
         } else {
             panel.style.display = 'block';
-            e.target.style.color = '#fff'; // Active state
+            infoBtn.style.color = '#fff'; // Active state
+            infoBtn.style.background = 'rgba(255,255,255,0.2)';
         }
     });
 

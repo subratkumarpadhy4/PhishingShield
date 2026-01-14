@@ -138,15 +138,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                 iconUrl: 'images/icon48.png',
                 title: 'Cannot Report',
                 message: 'System pages cannot be reported.',
-                priority: 1
+                priority: 2
             });
             return;
         }
 
-        // Get user info and send report
         chrome.storage.local.get(['currentUser'], (data) => {
-            const user = data.currentUser || {};
-            const reporterDisplay = (user.name || 'Anonymous') + (user.email ? ` (${user.email})` : '');
+            const reporter = data.currentUser ? data.currentUser.email : 'Anonymous';
+            const reporterDisplay = data.currentUser ? data.currentUser.name || reporter : 'Anonymous';
 
             let hostname;
             try {
@@ -173,62 +172,90 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                 .then(res => {
                     console.log("[PhishingShield] POST Response Status:", res.status);
                     return res.json();
+            // TRY TO GET ANALYSIS FROM TAB FIRST
+            function sendReport(analysisData = null) {
+                const reportPayload = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    url: urlToReport,
+                    hostname: hostname,
+                    reporter: reporterDisplay,
+                    timestamp: Date.now(),
+                    status: 'pending',
+                    // Attach User's Local Analysis
+                    aiAnalysis: analysisData ? {
+                        score: analysisData.score || 0,
+                        suggestion: (analysisData.score > 70) ? 'BAN' : (analysisData.score > 40 ? 'CAUTION' : 'IGNORE'),
+                        reason: (analysisData.reasons || []).join(' | '),
+                        timestamp: Date.now()
+                    } : null
+                };
+
+                // Send to Backend (Localhost during Dev)
+                fetch('http://localhost:3000/api/reports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reportPayload)
                 })
-                .then(() => {
-                    console.log("[PhishingShield] Report sent successfully!");
+                    .then(res => {
+                        console.log("[PhishingShield] POST Response Status:", res.status);
+                        return res.json();
+                    })
+                    .then(() => {
+                        console.log("[PhishingShield] Report sent successfully!");
 
-                    // Add XP to user
-                    chrome.storage.local.get(['userXP', 'userLevel'], (data) => {
-                        let xp = data.userXP || 0;
-                        let level = data.userLevel || 1;
-                        xp += 10; // 10 XP for reporting
-                        updateXP(10); // Call updateXP with the amount
-                    });
-
-                    // NOTIFY USER OF SUCCESS (Pretty Toast -> Fallback to Alert)
-                    if (tab && tab.id) {
-                        chrome.tabs.sendMessage(tab.id, {
-                            type: "SHOW_NOTIFICATION",
-                            title: "Report Sent!",
-                            message: "Thank you for keeping the web safe.\n(+10 XP)"
-                        })
-                            .then(() => console.log("[PhishingShield] Toast Sent"))
-                            .catch(() => {
-                                console.log("[PhishingShield] Content script inactive. Using fallback alert.");
-                                chrome.scripting.executeScript({
-                                    target: { tabId: tab.id },
-                                    func: () => alert("✅ Report Sent to PhishingShield!\n\nThank you for keeping the web safe.\n(+10 XP)")
-                                });
-                            });
-                    }
-                })
-                .catch(err => {
-                    console.error("[PhishingShield] Report failed:", err);
-
-                    // Notify User of FAILURE
-                    if (tab && tab.id) {
-                        chrome.scripting.executeScript({
-                            target: { tabId: tab.id },
-                            func: (msg) => alert("⚠️ Report Failed: " + msg),
-                            args: [err.message || "Unknown Error"]
+                        // Add XP to user
+                        chrome.storage.local.get(['userXP', 'userLevel'], (data) => {
+                            let xp = data.userXP || 0;
+                            let level = data.userLevel || 1;
+                            xp += 10; // 10 XP for reporting
+                            updateXP(10); // Call updateXP with the amount
                         });
-                    }
 
-                    chrome.notifications.create({
-                        type: 'basic',
-                        iconUrl: 'images/icon48.png',
-                        title: '⚠️ Report Failed',
-                        message: 'Could not submit report: ' + err.message,
-                        priority: 1
+                        // NOTIFY USER OF SUCCESS
+                        if (tab && tab.id) {
+                            chrome.tabs.sendMessage(tab.id, {
+                                type: "SHOW_NOTIFICATION",
+                                title: "Report Sent!",
+                                message: "Thank you for keeping the web safe.\n(+10 XP)"
+                            })
+                                .then(() => console.log("[PhishingShield] Toast Sent"))
+                                .catch(() => {
+                                    console.log("[PhishingShield] Content script inactive. Using fallback alert.");
+                                    chrome.scripting.executeScript({
+                                        target: { tabId: tab.id },
+                                        func: () => alert("✅ Report Sent to PhishingShield!\n\nThank you for keeping the web safe.\n(+10 XP)")
+                                    });
+                                });
+                        }
+                    })
+                    .catch(err => {
+                        console.error("[PhishingShield] Report failed:", err);
+
+                        // Notify failure
+                        if (tab && tab.id) {
+                            chrome.scripting.executeScript({
+                                target: { tabId: tab.id },
+                                func: (msg) => alert("⚠️ Report Failed: " + msg),
+                                args: [err.message]
+                            });
+                        }
                     });
-                });
+            }
 
-            // Save locally as backup
-            chrome.storage.local.get(['reportedSites'], (res) => {
-                const reports = res.reportedSites || [];
-                reports.push(reportPayload);
-                chrome.storage.local.set({ reportedSites: reports });
-            });
+            // Fetch Analysis from Content Script
+            if (tab && tab.id) {
+                chrome.tabs.sendMessage(tab.id, { type: "GET_RISK_ANALYSIS" }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log("[PhishingShield] Could not fetch analysis (Script blocked?), sending basic report.");
+                        sendReport(null);
+                    } else {
+                        console.log("[PhishingShield] Got Analysis from Tab:", response);
+                        sendReport(response);
+                    }
+                });
+            } else {
+                sendReport(null);
+            }
         });
     }
 });
@@ -392,6 +419,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         syncXPToServer();
         if (sendResponse) sendResponse({ success: true });
         return true;
+    }
+
+    // 7. SCAN CONTENT WITH AI (Real-time)
+    else if (request.type === "SCAN_CONTENT") {
+        console.log("[PhishingShield] AI Scan Requested for:", request.url);
+
+        // Fetch from Backend (Use LOCALHOST for testing)
+        fetch('http://localhost:3000/api/ai/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: request.url,
+                content: request.content
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("[PhishingShield] AI Scan Result:", data);
+                // Send result back to the tab that requested it (or generic callback)
+                if (sendResponse) sendResponse(data);
+            })
+            .catch(err => {
+                console.error("[PhishingShield] AI Scan Failed:", err);
+                if (sendResponse) sendResponse({ success: false, error: err.message });
+            });
+
+        return true; // Keep channel open
     }
 
     return true; // Default keep-open to be safe

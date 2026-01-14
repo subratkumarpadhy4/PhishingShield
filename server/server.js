@@ -1,10 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const express = require("express");
+const path = require("path");
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+// const path = require("path"); // Moved to top
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,34 +14,44 @@ const REPORTS_FILE = path.join(__dirname, 'reports.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const AUDIT_LOG_FILE = path.join(__dirname, 'data', 'audit_logs.json');
 const TRUST_FILE = path.join(__dirname, 'data', 'trust_scores.json');
+const REPORTS_FILE = path.join(__dirname, "reports.json");
+const USERS_FILE = path.join(__dirname, "users.json");
+const AUDIT_LOG_FILE = path.join(__dirname, "data", "audit_logs.json");
+
+console.log("Gemini Key Status:", process.env.GEMINI_API_KEY ? "Found" : "Not Found");
+
 
 // Admin Configuration (Server-Side Only)
-const ADMIN_EMAILS = ['rajkumarpadhy2006@gmail.com']; // Add more admin emails here
-const JWT_SECRET = process.env.JWT_SECRET || 'phishingshield-secret-key-change-in-production-2024';
-const JWT_EXPIRY_ADMIN = '10d'; // Admin sessions expire in 10 days
+const ADMIN_EMAILS = ["rajkumarpadhy2006@gmail.com"]; // Add more admin emails here
+const JWT_SECRET =
+    process.env.JWT_SECRET ||
+    "phishingshield-secret-key-change-in-production-2024";
+const JWT_EXPIRY_ADMIN = "10d"; // Admin sessions expire in 10 days
 
 // Middleware
 // Enhanced CORS configuration for Chrome extension and web access
-app.use(cors({
-    origin: '*', // Allow all origins (Chrome extensions use chrome-extension:// URLs)
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: false
-}));
+app.use(
+    cors({
+        origin: "*", // Allow all origins (Chrome extensions use chrome-extension:// URLs)
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+        credentials: false,
+    }),
+);
 
 // Handle preflight requests
-app.options('*', cors());
+app.options("*", cors());
 
 app.use(bodyParser.json());
 
 // PREVENT CRASHES: Global Error Handlers
-process.on('uncaughtException', (err) => {
-    console.error('CRITICAL ERROR (Uncaught Exception):', err);
+process.on("uncaughtException", (err) => {
+    console.error("CRITICAL ERROR (Uncaught Exception):", err);
     // Keep server alive
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('CRITICAL ERROR (Unhandled Rejection):', reason);
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("CRITICAL ERROR (Unhandled Rejection):", reason);
     // Keep server alive
 });
 
@@ -49,12 +61,22 @@ if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify([], 
 if (!fs.existsSync(path.dirname(AUDIT_LOG_FILE))) fs.mkdirSync(path.dirname(AUDIT_LOG_FILE), { recursive: true });
 if (!fs.existsSync(AUDIT_LOG_FILE)) fs.writeFileSync(AUDIT_LOG_FILE, JSON.stringify([], null, 2));
 if (!fs.existsSync(TRUST_FILE)) fs.writeFileSync(TRUST_FILE, JSON.stringify([], null, 2));
+if (!fs.existsSync(REPORTS_FILE))
+    fs.writeFileSync(REPORTS_FILE, JSON.stringify([], null, 2));
+if (!fs.existsSync(USERS_FILE))
+    fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
+if (!fs.existsSync(path.dirname(AUDIT_LOG_FILE)))
+    fs.mkdirSync(path.dirname(AUDIT_LOG_FILE), { recursive: true });
+if (!fs.existsSync(AUDIT_LOG_FILE))
+    fs.writeFileSync(AUDIT_LOG_FILE, JSON.stringify([], null, 2));
 
 // --- Helpers ---
 const readData = (file) => {
     try {
         return JSON.parse(fs.readFileSync(file));
-    } catch (e) { return []; }
+    } catch (e) {
+        return [];
+    }
 };
 const writeData = (file, data) => {
     fs.writeFileSync(file, JSON.stringify(data, null, 2));
@@ -178,23 +200,23 @@ app.get('/api/trust/sync-status', (req, res) => {
 // --- ROUTES: REPORTS ---
 
 // GET /api/reports
-app.get('/api/reports', (req, res) => {
+app.get("/api/reports", (req, res) => {
     res.json(readData(REPORTS_FILE));
 });
 
 // POST /api/reports
-app.post('/api/reports', (req, res) => {
+app.post("/api/reports", (req, res) => {
     const newReport = req.body;
     if (!newReport.url) return res.status(400).json({ error: "Missing URL" });
 
     const report = {
         id: Date.now().toString(),
         url: newReport.url,
-        hostname: newReport.hostname || 'Unknown',
-        reporter: newReport.reporter || 'Anonymous',
+        hostname: newReport.hostname || "Unknown",
+        reporter: newReport.reporter || "Anonymous",
         timestamp: Date.now(),
-        status: 'pending',
-        ...newReport
+        status: "pending",
+        ...newReport,
     };
 
     const reports = readData(REPORTS_FILE);
@@ -208,38 +230,79 @@ app.post('/api/reports', (req, res) => {
 // --- ROUTES: USERS & AUTH ---
 
 // GET /api/users
-app.get('/api/users', (req, res) => {
+app.get("/api/users", (req, res) => {
     const users = readData(USERS_FILE);
     // Return safe public info if needed, or full objects for this internal extension backend
     res.json(users);
 });
 
+// GET /test-phish (Simulation Page)
+app.get("/test-phish", (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Urgent Security Update - Verify Account</title>
+            <style>
+                body { font-family: sans-serif; padding: 50px; text-align: center; background: #f8f9fa; }
+                .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+                h1 { color: #dc3545; }
+                button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+                input { padding: 10px; width: 100%; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>⚠️ Account Suspended</h1>
+                <p>We detected unauthorized access to your **Bank** account.</p>
+                <p>Please <strong>login immediately</strong> to verify your identity or your funds will be frozen within 24 hours.</p>
+                
+                <form action="/login" method="POST">
+                    <input type="email" placeholder="Email Address" />
+                    <!-- Triggers Insecure Password Risk -->
+                    <input type="password" placeholder="Enter Password" />
+                    <button type="submit">Verify Now</button>
+                </form>
+                <br>
+                <small>This is a safe simulation page to trigger PhishingShield HUD.</small>
+            </div>
+        </body>
+        </html>
+    `);
+});
+
 // Email Configuration (EmailJS - Works with Gmail, no domain verification needed)
-const axios = require('axios');
+const axios = require("axios");
 let emailServiceReady = false;
 
 // EmailJS Configuration
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID || "service_orcv7av";
-const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID || "template_f0lfm5h";
-const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY || "BxDgzDbuSkLEs4H_9";
+const EMAILJS_TEMPLATE_ID =
+    process.env.EMAILJS_TEMPLATE_ID || "template_f0lfm5h";
+const EMAILJS_PUBLIC_KEY =
+    process.env.EMAILJS_PUBLIC_KEY || "BxDgzDbuSkLEs4H_9";
 
 // Initialize EmailJS
 function initializeEmailService() {
     if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
-        console.warn('[EMAIL] EmailJS not fully configured. OTPs will be logged to console.');
-        console.warn('[EMAIL] Set EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, and EMAILJS_PUBLIC_KEY environment variables.');
+        console.warn(
+            "[EMAIL] EmailJS not fully configured. OTPs will be logged to console.",
+        );
+        console.warn(
+            "[EMAIL] Set EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, and EMAILJS_PUBLIC_KEY environment variables.",
+        );
         return false;
     }
 
     try {
-        console.log('[EMAIL] EmailJS initialized successfully');
+        console.log("[EMAIL] EmailJS initialized successfully");
         console.log(`[EMAIL] Service ID: ${EMAILJS_SERVICE_ID}`);
-        console.log('[EMAIL] No domain verification needed - works with Gmail!');
-        console.log('[EMAIL] Free tier: 200 emails/month');
+        console.log("[EMAIL] No domain verification needed - works with Gmail!");
+        console.log("[EMAIL] Free tier: 200 emails/month");
         return true;
     } catch (error) {
-        console.error('[EMAIL] Failed to initialize EmailJS:', error.message);
-        console.log('[EMAIL] Server will continue without email functionality');
+        console.error("[EMAIL] Failed to initialize EmailJS:", error.message);
+        console.log("[EMAIL] Server will continue without email functionality");
         return false;
     }
 }
@@ -249,9 +312,9 @@ emailServiceReady = initializeEmailService();
 // Helper function to convert HTML to plain text (simple version)
 function htmlToText(html) {
     return html
-        .replace(/<style[^>]*>.*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, '')
-        .replace(/\n\s*\n/g, '\n')
+        .replace(/<style[^>]*>.*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\n\s*\n/g, "\n")
         .trim();
 }
 
@@ -259,7 +322,7 @@ function htmlToText(html) {
 async function sendEmail(to, subject, htmlContent, options = {}) {
     // Extract OTP code from HTML
     const otpMatch = htmlContent.match(/>(\d{4,6})</);
-    const otpCode = otpMatch ? otpMatch[1] : 'XXXX';
+    const otpCode = otpMatch ? otpMatch[1] : "XXXX";
 
     // Extract recipient name if available
     const toName = options.toName || "User";
@@ -275,25 +338,29 @@ async function sendEmail(to, subject, htmlContent, options = {}) {
                 email: to,
                 otp: otpCode,
                 subject: subject,
-                message: htmlContent
-            }
+                message: htmlContent,
+            },
         };
 
         const config = {
             headers: {
-                'Content-Type': 'application/json',
-                'Origin': 'https://phishingshield.onrender.com'
-            }
+                "Content-Type": "application/json",
+                Origin: "https://phishingshield.onrender.com",
+            },
         };
 
-        const response = await axios.post('https://api.emailjs.com/api/v1.0/email/send', payload, config);
+        const response = await axios.post(
+            "https://api.emailjs.com/api/v1.0/email/send",
+            payload,
+            config,
+        );
 
-        console.log('[EMAIL] Email sent successfully via EmailJS');
+        console.log("[EMAIL] Email sent successfully via EmailJS");
         return { success: true, response: response.data };
     } catch (error) {
-        console.error('[EMAIL] EmailJS error:', error.message);
+        console.error("[EMAIL] EmailJS error:", error.message);
         if (error.response) {
-            console.error('[EMAIL] EmailJS response:', error.response.data);
+            console.error("[EMAIL] EmailJS response:", error.response.data);
         }
         return { success: false, error: error.message };
     }
@@ -348,13 +415,15 @@ function logAdminAction(userId, action, ipAddress, success, details = {}) {
         userId,
         action,
         ipAddress,
-        userAgent: details.userAgent || 'Unknown',
+        userAgent: details.userAgent || "Unknown",
         success,
         details,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
     });
     writeData(AUDIT_LOG_FILE, logs);
-    console.log(`[AUDIT] ${action} - User: ${userId} - IP: ${ipAddress} - Success: ${success}`);
+    console.log(
+        `[AUDIT] ${action} - User: ${userId} - IP: ${ipAddress} - Success: ${success}`,
+    );
 }
 
 // Helper: Rate limiting check for admin
@@ -388,16 +457,19 @@ function checkAdminRateLimit(ip, endpoint) {
 
 // Helper: Get client IP
 function getClientIP(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0] ||
+    return (
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
         req.connection.remoteAddress ||
         req.socket.remoteAddress ||
-        '127.0.0.1';
+        "127.0.0.1"
+    );
 }
 
 // POST /api/send-otp
-app.post('/api/send-otp', async (req, res) => {
+app.post("/api/send-otp", async (req, res) => {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email required" });
+    if (!email)
+        return res.status(400).json({ success: false, message: "Email required" });
 
     // Generate 4-digit code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -411,11 +483,11 @@ app.post('/api/send-otp', async (req, res) => {
     console.log(`[OTP] Preparing to send ${code} to ${email}...`);
 
     // EmailJS uses template, so FROM_EMAIL is set in EmailJS dashboard
-    const fromEmail = process.env.FROM_EMAIL || 'phishingshield@gmail.com';
+    const fromEmail = process.env.FROM_EMAIL || "phishingshield@gmail.com";
     const mailOptions = {
         from: `"PhishingShield Security" <${fromEmail}>`,
         to: email,
-        subject: 'Your Verification Code',
+        subject: "Your Verification Code",
         html: `
             <div style="background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 0;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
@@ -450,13 +522,18 @@ app.post('/api/send-otp', async (req, res) => {
                     </div>
                 </div>
             </div>
-        `
+        `,
     };
 
     // Check if email service is available
     if (!emailServiceReady) {
-        console.log(`[OTP FALLBACK] Email service unavailable. Code for ${email}: ${code}`);
-        return res.json({ success: true, message: "OTP generated (check server logs)" });
+        console.log(
+            `[OTP FALLBACK] Email service unavailable. Code for ${email}: ${code}`,
+        );
+        return res.json({
+            success: true,
+            message: "OTP generated (check server logs)",
+        });
     }
 
     // Send email via EmailJS
@@ -465,22 +542,22 @@ app.post('/api/send-otp', async (req, res) => {
         mailOptions.subject,
         mailOptions.html,
         {
-            toName: req.body.name || "User"
-        }
+            toName: req.body.name || "User",
+        },
     );
 
     if (emailResult.success) {
         console.log(`[OTP] Email sent successfully to ${email}`);
         res.json({ success: true, message: "OTP Sent to Email!" });
     } else {
-        console.error('[OTP] Error sending email:', emailResult.error);
+        console.error("[OTP] Error sending email:", emailResult.error);
         console.log(`[OTP FALLBACK] Code for ${email}: ${code}`);
         res.json({ success: true, message: "OTP generated (check server logs)" });
     }
 });
 
 // POST /api/verify-otp (Mock)
-app.post('/api/verify-otp', (req, res) => {
+app.post("/api/verify-otp", (req, res) => {
     const { email, otp } = req.body;
 
     const record = otpStore[email];
@@ -498,24 +575,28 @@ app.post('/api/verify-otp', (req, res) => {
     // Check against stored code (Robust string comparison)
     const stored = String(record.code).trim();
     const input = otp ? String(otp).trim() : '';
+    const stored = otpStore[email] ? String(otpStore[email]).trim() : null;
+    const input = otp ? String(otp).trim() : "";
 
     if (stored === input) {
         console.log(`[OTP] ✅ Verified for ${email}`);
         delete otpStore[email]; // Clear after use
         res.json({ success: true });
     } else {
-        console.warn(`[OTP] ❌ Failed for ${email}. Expected: ${stored}, Got: ${input}`);
+        console.warn(
+            `[OTP] ❌ Failed for ${email}. Expected: ${stored}, Got: ${input}`,
+        );
         res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 });
 
 // POST /api/users/sync (Create or Update User)
-app.post('/api/users/sync', (req, res) => {
+app.post("/api/users/sync", (req, res) => {
     const userData = req.body;
     if (!userData.email) return res.status(400).json({ error: "Email required" });
 
     const users = readData(USERS_FILE);
-    const idx = users.findIndex(u => u.email === userData.email);
+    const idx = users.findIndex((u) => u.email === userData.email);
 
     let finalUser;
 
@@ -533,21 +614,27 @@ app.post('/api/users/sync', (req, res) => {
         // If it's a penalty, we TRUST the client's lower value.
         // Otherwise, we keep the highest value (Server Authority) to prevent data loss.
         const isPenalty = userData.isPenalty === true;
-        const incomingXP = (userData.xp !== undefined) ? Number(userData.xp) : 0;
+        const incomingXP = userData.xp !== undefined ? Number(userData.xp) : 0;
         const finalXP = isPenalty ? incomingXP : Math.max(incomingXP, serverXP);
 
-        // Logic for Level: 
+        // Logic for Level:
         // If it's a penalty, we also accept the client's (potentially lower) level.
         // Otherwise, we use the standard max logic to prevent accidental demotions.
-        const incomingLevel = (userData.level !== undefined) ? Number(userData.level) : 1;
-        const finalLevel = isPenalty ? incomingLevel :
-            (incomingLevel > serverLevel ? incomingLevel : (finalXP > serverXP ? Math.floor(Math.sqrt(finalXP / 100)) + 1 : serverLevel));
+        const incomingLevel =
+            userData.level !== undefined ? Number(userData.level) : 1;
+        const finalLevel = isPenalty
+            ? incomingLevel
+            : incomingLevel > serverLevel
+                ? incomingLevel
+                : finalXP > serverXP
+                    ? Math.floor(Math.sqrt(finalXP / 100)) + 1
+                    : serverLevel;
 
         finalUser = {
             ...users[idx],
             ...userData,
             xp: finalXP,
-            level: finalLevel
+            level: finalLevel,
         };
 
         // If simple overwrite is preferred for Admin demotions, we need a flag.
@@ -567,11 +654,11 @@ app.post('/api/users/sync', (req, res) => {
 });
 
 // POST /api/users/delete
-app.post('/api/users/delete', (req, res) => {
+app.post("/api/users/delete", (req, res) => {
     const { email } = req.body;
     let users = readData(USERS_FILE);
     const initialLen = users.length;
-    users = users.filter(u => u.email !== email);
+    users = users.filter((u) => u.email !== email);
 
     if (users.length !== initialLen) {
         writeData(USERS_FILE, users);
@@ -583,10 +670,10 @@ app.post('/api/users/delete', (req, res) => {
 });
 
 // POST /api/users/reset-password
-app.post('/api/users/reset-password', (req, res) => {
+app.post("/api/users/reset-password", (req, res) => {
     const { email, password } = req.body;
     const users = readData(USERS_FILE);
-    const idx = users.findIndex(u => u.email === email);
+    const idx = users.findIndex((u) => u.email === email);
 
     if (idx !== -1) {
         users[idx].password = password;
@@ -603,42 +690,56 @@ app.post('/api/users/reset-password', (req, res) => {
 // ============================================
 
 // POST /api/auth/admin/login - Step 1: Primary Authentication
-app.post('/api/auth/admin/login', async (req, res) => {
+app.post("/api/auth/admin/login", async (req, res) => {
     const { email, password } = req.body;
     const ip = getClientIP(req);
 
     // Rate limiting check
-    if (!checkAdminRateLimit(ip, 'admin_login')) {
-        logAdminAction(email || 'unknown', 'admin_login_attempt', ip, false, { reason: 'rate_limit_exceeded' });
+    if (!checkAdminRateLimit(ip, "admin_login")) {
+        logAdminAction(email || "unknown", "admin_login_attempt", ip, false, {
+            reason: "rate_limit_exceeded",
+        });
         return res.status(429).json({
             success: false,
-            message: "Too many attempts. Please try again in 30 minutes."
+            message: "Too many attempts. Please try again in 30 minutes.",
         });
     }
 
     if (!email || !password) {
-        return res.status(400).json({ success: false, message: "Email and password required" });
+        return res
+            .status(400)
+            .json({ success: false, message: "Email and password required" });
     }
 
     // Server-side admin check
     if (!isAdminEmail(email)) {
-        logAdminAction(email, 'admin_login_attempt', ip, false, { reason: 'not_admin_email' });
+        logAdminAction(email, "admin_login_attempt", ip, false, {
+            reason: "not_admin_email",
+        });
         return res.status(403).json({ success: false, message: "Access denied" });
     }
 
     // Find user
     const users = readData(USERS_FILE);
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
     if (!user) {
-        logAdminAction(email, 'admin_login_attempt', ip, false, { reason: 'user_not_found' });
-        return res.status(401).json({ success: false, message: "Invalid credentials" });
+        logAdminAction(email, "admin_login_attempt", ip, false, {
+            reason: "user_not_found",
+        });
+        return res
+            .status(401)
+            .json({ success: false, message: "Invalid credentials" });
     }
 
     // Verify password (plaintext for now, but admin should use strong password)
     if (user.password !== password) {
-        logAdminAction(email, 'admin_login_attempt', ip, false, { reason: 'invalid_password' });
-        return res.status(401).json({ success: false, message: "Invalid credentials" });
+        logAdminAction(email, "admin_login_attempt", ip, false, {
+            reason: "invalid_password",
+        });
+        return res
+            .status(401)
+            .json({ success: false, message: "Invalid credentials" });
     }
 
     // Authenticated successfully - Generate Admin Session directly (No OTP)
@@ -650,13 +751,13 @@ app.post('/api/auth/admin/login', async (req, res) => {
         {
             userId: user.email,
             email: user.email,
-            role: 'admin',
+            role: "admin",
             mfaVerified: true,
             ipAddress: ip,
-            sessionId: sessionId
+            sessionId: sessionId,
         },
         JWT_SECRET,
-        { expiresIn: JWT_EXPIRY_ADMIN }
+        { expiresIn: JWT_EXPIRY_ADMIN },
     );
 
     // Store admin session PERSISTENTLY
@@ -666,11 +767,14 @@ app.post('/api/auth/admin/login', async (req, res) => {
         token: adminToken,
         ip,
         createdAt: Date.now(),
-        expiresAt: Date.now() + (10 * 24 * 60 * 60 * 1000) // 10 days
+        expiresAt: Date.now() + 10 * 24 * 60 * 60 * 1000, // 10 days
     };
     saveAdminSessions(sessions);
 
-    logAdminAction(user.email, 'admin_login_success', ip, true, { sessionId, method: 'password_only' });
+    logAdminAction(user.email, "admin_login_success", ip, true, {
+        sessionId,
+        method: "password_only",
+    });
 
     res.json({
         success: true,
@@ -678,16 +782,17 @@ app.post('/api/auth/admin/login', async (req, res) => {
         user: {
             email: user.email,
             name: user.name,
-            role: 'admin'
+            role: "admin",
         },
-        expiresIn: '10d',
-        requiresMFA: false
+        expiresIn: "10d",
+        requiresMFA: false,
     });
 });
 
 // Persistent Admin Sessions
-const SESSIONS_FILE = path.join(__dirname, 'data', 'admin_sessions.json');
-if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, JSON.stringify({}, null, 2));
+const SESSIONS_FILE = path.join(__dirname, "data", "admin_sessions.json");
+if (!fs.existsSync(SESSIONS_FILE))
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify({}, null, 2));
 
 function getAdminSessions() {
     return readData(SESSIONS_FILE) || {};
@@ -698,27 +803,40 @@ function saveAdminSessions(sessions) {
 }
 
 // POST /api/auth/admin/verify-mfa - Step 2: MFA Verification
-app.post('/api/auth/admin/verify-mfa', (req, res) => {
+app.post("/api/auth/admin/verify-mfa", (req, res) => {
     const { sessionId, otp } = req.body;
     const ip = getClientIP(req);
 
     if (!sessionId || !otp) {
-        return res.status(400).json({ success: false, message: "Session ID and OTP required" });
+        return res
+            .status(400)
+            .json({ success: false, message: "Session ID and OTP required" });
     }
 
     // Find pending session
     const pendingSession = adminPendingSessions[sessionId];
 
     if (!pendingSession) {
-        logAdminAction('unknown', 'admin_mfa_verify', ip, false, { reason: 'invalid_session' });
-        return res.status(401).json({ success: false, message: "Invalid or expired session" });
+        logAdminAction("unknown", "admin_mfa_verify", ip, false, {
+            reason: "invalid_session",
+        });
+        return res
+            .status(401)
+            .json({ success: false, message: "Invalid or expired session" });
     }
 
     // Check expiry
     if (Date.now() > pendingSession.expiresAt) {
         delete adminPendingSessions[sessionId];
-        logAdminAction(pendingSession.email, 'admin_mfa_verify', ip, false, { reason: 'session_expired' });
-        return res.status(401).json({ success: false, message: "Session expired. Please login again." });
+        logAdminAction(pendingSession.email, "admin_mfa_verify", ip, false, {
+            reason: "session_expired",
+        });
+        return res
+            .status(401)
+            .json({
+                success: false,
+                message: "Session expired. Please login again.",
+            });
     }
 
     // Verify OTP
@@ -726,13 +844,17 @@ app.post('/api/auth/admin/verify-mfa', (req, res) => {
     const storedOTP = String(pendingSession.otp).trim();
 
     if (inputOTP !== storedOTP) {
-        logAdminAction(pendingSession.email, 'admin_mfa_verify', ip, false, { reason: 'invalid_otp' });
+        logAdminAction(pendingSession.email, "admin_mfa_verify", ip, false, {
+            reason: "invalid_otp",
+        });
         return res.status(401).json({ success: false, message: "Invalid OTP" });
     }
 
     // OTP verified - create admin session
     const users = readData(USERS_FILE);
-    const user = users.find(u => u.email.toLowerCase() === pendingSession.email.toLowerCase());
+    const user = users.find(
+        (u) => u.email.toLowerCase() === pendingSession.email.toLowerCase(),
+    );
 
     if (!user) {
         delete adminPendingSessions[sessionId];
@@ -744,13 +866,13 @@ app.post('/api/auth/admin/verify-mfa', (req, res) => {
         {
             userId: user.email,
             email: user.email,
-            role: 'admin',
+            role: "admin",
             mfaVerified: true,
             ipAddress: ip,
-            sessionId: sessionId
+            sessionId: sessionId,
         },
         JWT_SECRET,
-        { expiresIn: JWT_EXPIRY_ADMIN }
+        { expiresIn: JWT_EXPIRY_ADMIN },
     );
 
     // Store admin session PERSISTENTLY
@@ -760,14 +882,17 @@ app.post('/api/auth/admin/verify-mfa', (req, res) => {
         token: adminToken,
         ip,
         createdAt: Date.now(),
-        expiresAt: Date.now() + (10 * 24 * 60 * 60 * 1000) // 10 days
+        expiresAt: Date.now() + 10 * 24 * 60 * 60 * 1000, // 10 days
     };
     saveAdminSessions(sessions);
 
     // Clean up pending session
     delete adminPendingSessions[sessionId];
 
-    logAdminAction(user.email, 'admin_login_success', ip, true, { sessionId, mfaMethod: 'email' });
+    logAdminAction(user.email, "admin_login_success", ip, true, {
+        sessionId,
+        mfaMethod: "email",
+    });
 
     res.json({
         success: true,
@@ -775,28 +900,273 @@ app.post('/api/auth/admin/verify-mfa', (req, res) => {
         user: {
             email: user.email,
             name: user.name,
-            role: 'admin'
+            role: "admin",
         },
-        expiresIn: '10d'
+        expiresIn: "10d",
     });
 });
 
 // Middleware: Verify Admin Token
-function requireAdmin(req, res, next) {
-    const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, message: "No admin token provided" });
+// --- GENERIC AI SCAN ENDPOINT (For real-time page analysis) ---
+app.post("/api/ai/scan", async (req, res) => {
+    try {
+        const { url, content } = req.body;
+        if (!url) return res.status(400).json({ error: "URL required" });
+
+        // Limit content to avoid token limits
+        const safeContent = (content || "").substring(0, 10000);
+
+        console.log(`[AI-Scan] Analyzing: ${url}`);
+
+        if (process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY) {
+            // Support both keys, but prefer GROQ logic if requested
+            const Groq = require("groq-sdk");
+            const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY });
+
+            async function analyzeWithGroq() {
+                const completion = await groq.chat.completions.create({
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are PhishingShield AI. Analyze the URL and Page Content.
+Task: Classify the site into one of 3 categories:
+1. 'SAFE' (Legitimate sites like Instagram, Google, Gamma).
+2. 'SUSPICIOUS' (Unknown, shortened, or typos).
+3. 'MALICIOUS' (Phishing, scam, fake login).
+Return JSON: {classification: 'SAFE'|'SUSPICIOUS'|'MALICIOUS', reason: 'Short explanation'}.`
+                        },
+                        {
+                            role: "user",
+                            content: `URL: ${url}\\nContent: \"${safeContent.replace(/(\\r\\n|\\n|\\r)/gm, " ")}\"`
+                        }
+                    ],
+                    model: "llama-3.3-70b-versatile",
+                    temperature: 0.1,
+                    response_format: { type: "json_object" }
+                });
+
+                const result = JSON.parse(completion.choices[0]?.message?.content || "{}");
+
+                // Manual Mapping to Risk Score
+                const cls = (result.classification || "SUSPICIOUS").toUpperCase();
+                let score = 45; // Default SUSPICIOUS
+                if (cls === "SAFE") score = 0;
+                else if (cls === "MALICIOUS") score = 95;
+
+                const suggestion = (score > 70) ? "BAN" : (score > 30 ? "CAUTION" : "IGNORE");
+
+                return {
+                    score: score,
+                    suggestion: suggestion,
+                    reason: result.reason
+                };
+            }
+
+            try {
+                const json = await analyzeWithGroq();
+                console.log("[AI-Scan] Classification Result:", json);
+                return res.json({ success: true, aiAnalysis: json });
+            } catch (e) {
+                console.error("[AI-Scan] Groq Failed:", e.message);
+                return res.json({ success: false, error: e.message });
+            }
+
+        } else {
+            console.log("[AI-Scan] No API Key. Skipping.");
+            return res.json({ success: false, message: "No AI Key" });
+        }
+    } catch (error) {
+        console.error("[AI-Scan] Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
+});
 
-    const token = authHeader.split(' ')[1];
+// --- AI ANALYSIS ENDPOINT ---
+app.post("/api/reports/ai-verify", async (req, res) => {
+    try {
+        const { id } = req.body;
+        console.log("[AI-Verify] Received request for Report ID:", id);
+
+        // FIX: Read reports from file instead of assuming global variable
+        const reports = readData(REPORTS_FILE);
+
+        const reportIndex = reports.findIndex((r) => r.id === id);
+        if (reportIndex === -1) {
+            console.warn("[AI-Verify] Report not found in DB:", id);
+            return res.status(404).json({ error: "Report not found" });
+        }
+
+        const report = reports[reportIndex];
+
+        if (!report.url) {
+            console.warn("[AI-Verify] Report missing URL:", id);
+            return res.status(400).json({ error: "Report data is incomplete (missing URL)" });
+        }
+
+        const url = report.url.toLowerCase();
+
+        // --- REAL AI INTEGRATION ---
+        let aiScore = 10;
+        let aiSuggestion = "IGNORE";
+        let aiReason = "No obvious threats detected.";
+
+        if (process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY) {
+            // Use Groq if available (or fallback logic we used before)
+            // Ideally we reuse the same robust logic we just built for /scan
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
+            let modelName = "llama-3.3-70b-versatile"; // Default if Groq
+            let isGroq = !!process.env.GROQ_API_KEY;
+
+            try {
+                let textConfig = { apiKey: process.env.GROQ_API_KEY };
+                let Groq;
+
+                if (isGroq) {
+                    Groq = require("groq-sdk");
+                } else {
+                    // Fallback to Gemini if no Groq key
+                    isGroq = false;
+                }
+
+                // FETCH PAGE CONTEXT
+                let pageContext = "";
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+                    const fetchRes = await fetch(url, { signal: controller.signal });
+                    const html = await fetchRes.text();
+                    clearTimeout(timeoutId);
+
+                    // Extract Title
+                    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+                    const title = titleMatch ? titleMatch[1] : "No Title";
+
+                    // Extract Meta Description
+                    const metaMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i);
+                    const description = metaMatch ? metaMatch[1] : "No Description";
+
+                    pageContext = `Page Title: "${title}"\nMeta Description: "${description}"`;
+                    console.log(`[AI-Verify] Fetched Context: ${pageContext}`);
+                } catch (e) {
+                    pageContext = "Could not fetch page content (Host unreachable or blocking bots). Analyze URL pattern only.";
+                    console.warn(`[AI-Verify] Fetch failed: ${e.message}`);
+                }
+
+                if (isGroq) {
+                    const groq = new Groq(textConfig);
+                    const completion = await groq.chat.completions.create({
+                        messages: [
+                            { role: "system", content: "You are PhishingShield AI. Analyze the URL and Page Context.\nTask: Classify the site into one of 3 categories:\n1. 'SAFE' (Legitimate sites like Instagram, Google, Gamma).\n2. 'SUSPICIOUS' (Unknown, shortened, or typos).\n3. 'MALICIOUS' (Phishing, scam, fake login).\nReturn JSON: {classification: 'SAFE'|'SUSPICIOUS'|'MALICIOUS', reason: 'Short explanation'}." },
+                            { role: "user", content: `URL: ${url}\nContext: ${pageContext}` }
+                        ],
+                        model: modelName,
+                        temperature: 0.1,
+                        response_format: { type: "json_object" }
+                    });
+                    const result = JSON.parse(completion.choices[0]?.message?.content || "{}");
+
+                    // Manual Mapping to Risk Score to prevent Hallucinations
+                    const cls = (result.classification || "SUSPICIOUS").toUpperCase();
+                    if (cls === "SAFE") aiScore = 0;
+                    else if (cls === "MALICIOUS") aiScore = 95;
+                    else aiScore = 45; // SUSPICIOUS
+
+                    aiSuggestion = (aiScore > 70) ? "BAN" : (aiScore > 30 ? "CAUTION" : "IGNORE");
+                    aiReason = result.reason;
+                    console.log("[AI-Verify] Groq Success:", result, "mapped to", aiScore);
+                } else {
+                    // GEMINI LEGACY LOGIC
+                    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+                    const prompt = `Analyze URL ${url} for phishing. Return JSON {score, suggestion, reason}`;
+                    const result = await model.generateContent(prompt);
+                    const json = JSON.parse(result.response.text().replace(/```json/g, '').replace(/```/g, ''));
+                    aiScore = json.score;
+                    aiSuggestion = json.suggestion;
+                    aiReason = json.reason;
+                    console.log("[AI-Verify] Gemini Success:", json);
+                }
+            } catch (err) {
+                console.error("[AI-Verify] AI Failed:", err.message);
+                aiReason = "AI Service Unavailable";
+            }
+        } else {
+            // NO API KEY - Use Heuristics
+            console.log("[AI-Verify] No API Key found. Using Heuristics.");
+            aiReason = "[Heuristic] No suspicious keywords or IP patterns found.";
+
+            const suspiciousKeywords = [
+                "login",
+                "signin",
+                "secure",
+                "account",
+                "update",
+                "verify",
+                "wallet",
+                "bank",
+                "crypto",
+            ];
+
+            let riskCount = 0;
+            suspiciousKeywords.forEach((word) => {
+                if (url.includes(word)) riskCount++;
+            });
+
+            // Check for IP address usage (simple regex)
+            if (/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(url)) {
+                riskCount += 2;
+            }
+
+            if (riskCount >= 2) {
+                aiScore = 85;
+                aiSuggestion = "BAN";
+                aiReason = "Multiple high-risk keywords detected (Phishing Indicators).";
+            } else if (riskCount === 1) {
+                aiScore = 45;
+                aiSuggestion = "CAUTION";
+                aiReason = "Contains sensitive keywords, requires manual review.";
+            }
+        }
+        // Update Report with AI Data -- END of IF/ELSE Block
+        reports[reportIndex] = {
+            ...report,
+            aiAnalysis: {
+                score: aiScore,
+                suggestion: aiSuggestion,
+                reason: aiReason,
+                timestamp: Date.now(),
+            },
+        };
+
+        // FIX: Save using writeData
+        writeData(REPORTS_FILE, reports);
+
+        console.log(`[AI-Verify] Analyzed ${url} -> ${aiSuggestion} (${aiScore})`);
+        res.json({ success: true, aiAnalysis: reports[reportIndex].aiAnalysis });
+    } catch (error) {
+        console.error("[AI-Verify] Error:", error);
+        res.status(500).json({ success: false, error: "Internal Server Error during AI Analysis" });
+    }
+});
+
+// MIDDLEWARE: Check Admin Access
+const requireAdmin = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader)
+        return res.status(401).json({ success: false, message: "Token required" });
+
+    const token = authHeader.split(" ")[1];
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
 
         // Verify it's an admin token
-        if (decoded.role !== 'admin' || !decoded.mfaVerified) {
-            return res.status(403).json({ success: false, message: "Admin access required" });
+        if (decoded.role !== "admin" || !decoded.mfaVerified) {
+            return res
+                .status(403)
+                .json({ success: false, message: "Admin access required" });
         }
 
         // Verify session exists in PERSISTENT store
@@ -804,7 +1174,9 @@ function requireAdmin(req, res, next) {
         const sessions = getAdminSessions(); // Read from file
 
         if (!sessions[sessionId]) {
-            return res.status(401).json({ success: false, message: "Session expired" });
+            return res
+                .status(401)
+                .json({ success: false, message: "Session expired" });
         }
 
         // Check session expiry
@@ -812,56 +1184,60 @@ function requireAdmin(req, res, next) {
         if (Date.now() > session.expiresAt) {
             delete sessions[sessionId];
             saveAdminSessions(sessions);
-            return res.status(401).json({ success: false, message: "Session expired" });
+            return res
+                .status(401)
+                .json({ success: false, message: "Session expired" });
         }
 
         req.admin = decoded;
         req.sessionId = sessionId;
         next();
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
+        if (error.name === "TokenExpiredError") {
             return res.status(401).json({ success: false, message: "Token expired" });
         }
         return res.status(401).json({ success: false, message: "Invalid token" });
     }
-}
+};
 
 // GET /api/auth/admin/verify - Verify admin token validity
-app.get('/api/auth/admin/verify', requireAdmin, (req, res) => {
+app.get("/api/auth/admin/verify", requireAdmin, (req, res) => {
     res.json({
         success: true,
         admin: {
             email: req.admin.email,
-            role: req.admin.role
-        }
+            role: req.admin.role,
+        },
     });
 });
 
 // GET /api/admin/logs - Get audit logs (Admin Only)
-app.get('/api/admin/logs', requireAdmin, (req, res) => {
+app.get("/api/admin/logs", requireAdmin, (req, res) => {
     const logs = readData(AUDIT_LOG_FILE);
     // Return last 100 logs
     const recentLogs = logs.slice(-100).reverse();
     res.json({ success: true, logs: recentLogs });
 });
 
-
 // --- REPORTS API ---
 
 // (Duplicate Routes Removed)
 
 // POST /api/reports/update - Update report status (ban/ignore/pending)
-app.post('/api/reports/update', (req, res) => {
+app.post("/api/reports/update", (req, res) => {
     const { id, status } = req.body; // status: 'banned', 'ignored', 'pending'
-    if (!id || !status) return res.status(400).json({ success: false, message: "ID and status required" });
+    if (!id || !status)
+        return res
+            .status(400)
+            .json({ success: false, message: "ID and status required" });
 
     const reports = readData(REPORTS_FILE) || [];
-    const idx = reports.findIndex(r => r.id === id);
+    const idx = reports.findIndex((r) => r.id === id);
 
     if (idx !== -1) {
         reports[idx].status = status;
-        if (status === 'banned') reports[idx].bannedAt = Date.now();
-        if (status === 'ignored') reports[idx].ignoredAt = Date.now();
+        if (status === "banned") reports[idx].bannedAt = Date.now();
+        if (status === "ignored") reports[idx].ignoredAt = Date.now();
 
         writeData(REPORTS_FILE, reports);
         console.log(`[Report] Updated status for ${id} to ${status}`);
@@ -871,10 +1247,9 @@ app.post('/api/reports/update', (req, res) => {
     }
 });
 
-
 // Start Server
 // Bind to 0.0.0.0 to accept connections from Render's network
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`PhishingShield Backend running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });

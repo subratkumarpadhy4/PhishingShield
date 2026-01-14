@@ -134,6 +134,8 @@ window.RiskEngine = {
         }
 
         // 3. AI Analysis (Naive Bayes)
+        // 3. AI Analysis (Naive Bayes) - DISABLED in favor of Real Async AI (Gemini)
+        /*
         if (typeof AIModel !== 'undefined') {
             const aiResult = AIModel.predict(textContent + " " + title);
 
@@ -148,6 +150,7 @@ window.RiskEngine = {
                 score += aiPoints;
             }
         }
+        */
 
         // 4. Technical Indicators
 

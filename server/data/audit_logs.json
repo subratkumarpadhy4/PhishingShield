@@ -87,6 +87,7 @@
   },
   {
     "id": "log_1768329451721_ivij6c3gq",
+    "id": "log_1768253009723_haldh0nr3",
     "userId": "rajkumarpadhy2006@gmail.com",
     "action": "admin_login_success",
     "ipAddress": "127.0.0.1",
@@ -433,5 +434,9 @@
       "reason": "rate_limit_exceeded"
     },
     "timestamp": "2026-01-14T07:39:03.619Z"
+      "sessionId": "admin_sess_1768253009715_2xwa92kbh",
+      "method": "password_only"
+    },
+    "timestamp": "2026-01-12T21:23:29.723Z"
   }
 ]

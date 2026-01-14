@@ -6,5 +6,393 @@
     "reporter": "Anonymous",
     "timestamp": 1768323268170,
     "status": "pending"
+    "id": "1767513786199",
+    "url": "http://test-manual-curl.com",
+    "hostname": "test-manual-curl.com",
+    "reporter": "Curl Test",
+    "timestamp": 1767513786199,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 5,
+      "suggestion": "IGNORE",
+      "reason": "[Gemini] The domain name explicitly contains 'test' and 'manual', strongly suggesting it is used for development, configuration testing (e.g., network connectivity checks), or tutorials. It lacks brand impersonation, obfuscation, or common malicious structures.",
+      "timestamp": 1768290056814
+    }
+  },
+  {
+    "id": "1767465791305bavlrvxkg",
+    "url": "https://netmirror.gg/1/en",
+    "hostname": "netmirror.gg",
+    "reporter": "subrat.g (subratkumarpadhy.g.new@gmail.com)",
+    "timestamp": 1767465791305,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 25,
+      "suggestion": "IGNORE",
+      "reason": "[Gemini] The domain 'netmirror.gg' is not a widely known institution or bank, reducing the likelihood of direct brand impersonation. The structure (netmirror.gg/1/en) is simple, resembling a blog, short link, or content page rather than a complex login prompt or deceptive redirect. The .gg TLD is non-standard for high-value targets. While the name 'netmirror' could be suspicious, without content analysis, the URL itself is low-risk.",
+      "timestamp": 1768290082727
+    }
+  },
+  {
+    "id": "17674647750364zczox6i0",
+    "url": "https://netmirror.gg/1/en",
+    "hostname": "netmirror.gg",
+    "reporter": "subrat.g (subratkumarpadhy.g.new@gmail.com)",
+    "timestamp": 1767464775036,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "AI Analysis Failed (Gemini Error): [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "timestamp": 1768289083968
+    }
+  },
+  {
+    "id": "1768150471764r8qk0xggs",
+    "url": "https://www.britannica.com/topic/Greek-language",
+    "hostname": "www.britannica.com",
+    "reporter": "subrat.g (subratkumarpadhy.g.new@gmail.com)",
+    "timestamp": 1768150471764,
+    "status": "banned",
+    "bannedAt": 1768288646639,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "No obvious threats detected.",
+      "timestamp": 1768287255001
+    }
+  },
+  {
+    "id": "1767465487476h0okcgav8",
+    "url": "https://netmirror.gg/1/en",
+    "hostname": "netmirror.gg",
+    "reporter": "subrat.g (subratkumarpadhy.g.new@gmail.com)",
+    "timestamp": 1767465487476,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 40,
+      "suggestion": "CAUTION",
+      "reason": "[Gemini] The domain uses a less common ccTLD (.gg) and a generic name ('netmirror'), often associated with file hosting or technical services. While not an obvious brand impersonation attempt, the context requires caution due to potential for hosting dubious downloads or redirects.",
+      "timestamp": 1768294354847
+    }
+  },
+  {
+    "id": "1767511421016",
+    "url": "http://test-malicious-site.com",
+    "hostname": "test-malicious-site.com",
+    "reporter": "Anonymous",
+    "timestamp": 1767513966218,
+    "status": "pending",
+    "ignoredAt": 1767519665780,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "AI Analysis Failed (Gemini Error): [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent: [404 Not Found] models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "timestamp": 1768289690552
+    }
+  },
+  {
+    "id": "17675218679315hank4keg",
+    "url": "https://www.bput.ac.in/",
+    "hostname": "www.bput.ac.in",
+    "reporter": "Anonymous",
+    "timestamp": 1767521902180,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "AI Analysis Failed (Gemini Error): [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent: [404 Not Found] models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "timestamp": 1768289700480
+    }
+  },
+  {
+    "id": "1767521215379z77vzo109",
+    "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dlinktergacor889.online%2B-win%26hl%3Did%26gl%3DID&hl=id&q=EhAkAUkAj9NRfoFwotD9j1U6GKr36MoGIjChuGGq24iRssfEazzm-8hLQpE0CLN7J6eO1p748AkIvgxB8Fnxqa3QrN5sL_F_dZsyAnJSWgFD",
+    "hostname": "www.google.com",
+    "reporter": "System Admin (rajkumarpadhy2006@gmail.com)",
+    "timestamp": 1767521215380,
+    "status": "pending",
+    "bannedAt": 1768245131117,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "AI Analysis Failed (Gemini Error): [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 52.190606137s. [{\"@type\":\"type.googleapis.com/google.rpc.Help\",\"links\":[{\"description\":\"Learn more about Gemini API quotas\",\"url\":\"https://ai.google.dev/gemini-api/docs/rate-limits\"}]},{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaMetric\":\"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\"quotaDimensions\":{\"location\":\"global\",\"model\":\"gemini-2.5-flash\"},\"quotaValue\":\"20\"}]},{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"52s\"}]",
+      "timestamp": 1768300208005
+    }
+  },
+  {
+    "id": "1768069726553jvguhfa1r",
+    "url": "https://www.theturquoisecollection.com/experience/experience-the-greek-islands/greek-language/",
+    "hostname": "www.theturquoisecollection.com",
+    "reporter": "Anonymous",
+    "timestamp": 1768069839476,
+    "status": "pending",
+    "bannedAt": 1768288263009,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "[Heuristic] No suspicious keywords or IP patterns found.",
+      "timestamp": 1768287492662
+    }
+  },
+  {
+    "id": "1767521202266uvvl6hhw6",
+    "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dlinktergacor889.online%2B-win%26hl%3Did%26gl%3DID&hl=id&q=EhAkAUkAj9NRfoFwotD9j1U6GKr36MoGIjChuGGq24iRssfEazzm-8hLQpE0CLN7J6eO1p748AkIvgxB8Fnxqa3QrN5sL_F_dZsyAnJSWgFD",
+    "hostname": "www.google.com",
+    "reporter": "System Admin (rajkumarpadhy2006@gmail.com)",
+    "timestamp": 1767521202266,
+    "status": "pending",
+    "bannedAt": 1768244748119,
+    "ignoredAt": 1767521518380,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "AI Analysis Failed (Gemini Error). Falling back to heuristics.",
+      "timestamp": 1768287676584
+    }
+  },
+  {
+    "id": "1768241203120cfecaqt2d",
+    "url": "https://www.theturquoisecollection.com/experience/experience-the-greek-islands/greek-language/",
+    "hostname": "www.theturquoisecollection.com",
+    "reporter": "PRIYANSHU JENA (jenapriyanshu2006@gmail.com)",
+    "timestamp": 1768241203120,
+    "status": "pending",
+    "bannedAt": 1768247631265,
+    "ignoredAt": 1768243503763,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "No obvious threats detected.",
+      "timestamp": 1768287284084
+    }
+  },
+  {
+    "id": "1768243508980ycoxmdheb",
+    "url": "https://www.pinterest.com/",
+    "hostname": "www.pinterest.com",
+    "reporter": "kishor (gopakishor007@gmail.com)",
+    "timestamp": 1768243508980,
+    "status": "banned",
+    "bannedAt": 1768288734617,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "No obvious threats detected in URL patterns.",
+      "timestamp": 1768286556432
+    },
+    "ignoredAt": 1768287250601
+  },
+  {
+    "id": "1768244726652",
+    "url": "http://test-malicious-site.com",
+    "hostname": "test-malicious-site.com",
+    "reporter": "Admin Test",
+    "timestamp": 1768244726652,
+    "status": "pending",
+    "bannedAt": 1768244843364,
+    "aiAnalysis": {
+      "score": 10,
+      "suggestion": "IGNORE",
+      "reason": "AI Analysis Failed (Gemini Error). Falling back to heuristics.",
+      "timestamp": 1768287778307
+    }
+  },
+  {
+    "id": "17683013406972gh9tcr57",
+    "url": "https://netmirror.gg/1/en",
+    "hostname": "netmirror.gg",
+    "reporter": "System Admin (rajkumarpadhy2006@gmail.com)",
+    "timestamp": 1768301340697,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 0.6,
+      "suggestion": "Proceed with caution",
+      "reason": "The URL appears to be a shortened link, which may lead to an unknown or potentially malicious website.",
+      "timestamp": 1768301351976
+    }
+  },
+  {
+    "id": "1768301414005ws3nd2373",
+    "url": "https://netmirror.gg/1/en",
+    "hostname": "netmirror.gg",
+    "reporter": "System Admin (rajkumarpadhy2006@gmail.com)",
+    "timestamp": 1768301414005,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 0.6,
+      "suggestion": "Proceed with caution",
+      "reason": "The URL appears to be a shortened link, which may lead to an unknown or potentially malicious website.",
+      "timestamp": 1768301425945
+    }
+  },
+  {
+    "id": "1768301541551agpxsvmgl",
+    "url": "file:///Users/subratkumarpadhy/PhishingShield/tests/fake_instagram.html",
+    "hostname": "",
+    "reporter": "System Admin (rajkumarpadhy2006@gmail.com)",
+    "timestamp": 1768301541551,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 0,
+      "suggestion": "Do not access",
+      "reason": "The URL is a local file path and does not appear to be a legitimate Instagram webpage, potentially indicating a phishing attempt.",
+      "timestamp": 1768301551140
+    }
+  },
+  {
+    "id": "1768301764019a2fqwttan",
+    "url": "https://net20.cc/login2",
+    "hostname": "net20.cc",
+    "reporter": "System Admin",
+    "timestamp": 1768301764019,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 30,
+      "suggestion": "IGNORE",
+      "reason": "Possible Brand Impersonation: Claims to be NETFLIX (+30) | 🤖 Real AI Analysis: CAUTION (+30) | Brand Spoofing",
+      "timestamp": 1768301764019
+    }
+  },
+  {
+    "id": "1768301920984iy4x5whx8",
+    "url": "https://gamma.app/",
+    "hostname": "gamma.app",
+    "reporter": "subrat.g",
+    "timestamp": 1768301920984,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 98,
+      "suggestion": "BAN",
+      "reason": "✅ Adaptive Trust: Domain matches Page Title (-40) | 🤖 Real AI Analysis: IGNORE (+98) | Legitimate business website with clear product information and customer testimonials",
+      "timestamp": 1768301920984
+    }
+  },
+  {
+    "id": "1768302384165mrhl1xg5k",
+    "url": "https://www.instagram.com/",
+    "hostname": "www.instagram.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768302384165,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 99,
+      "suggestion": "BAN",
+      "reason": "✅ Adaptive Trust: Domain matches Page Title (-40) | 🤖 Real AI Analysis: IGNORE (+99) | Legitimate social media website",
+      "timestamp": 1768302384165
+    }
+  },
+  {
+    "id": "1768302631671oqn2t8xlx",
+    "url": "https://www.instagram.com/",
+    "hostname": "www.instagram.com",
+    "reporter": "System Admin",
+    "timestamp": 1768302631671,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 99,
+      "suggestion": "BAN",
+      "reason": "✅ Adaptive Trust: Domain matches Page Title (-40) | 🤖 Real AI Analysis: IGNORE (+99) | Legitimate social media website",
+      "timestamp": 1768302631671
+    }
+  },
+  {
+    "id": "1768302766279zrpn211oi",
+    "url": "https://www.instagram.com/",
+    "hostname": "www.instagram.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768302766279,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 99,
+      "suggestion": "BAN",
+      "reason": "✅ Adaptive Trust: Domain matches Page Title (-40) | 🤖 Real AI Analysis: IGNORE (+99) | Legitimate social media website",
+      "timestamp": 1768302766279
+    }
+  },
+  {
+    "id": "1768302954277vfjy4hqd8",
+    "url": "https://www.instagram.com/",
+    "hostname": "www.instagram.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768302954278,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 99,
+      "suggestion": "BAN",
+      "reason": "✅ Adaptive Trust: Domain matches Page Title (-40) | 🤖 Real AI Analysis: IGNORE (+99) | Legitimate social media website",
+      "timestamp": 1768302954278
+    }
+  },
+  {
+    "id": "1768303188730fc62doypq",
+    "url": "https://www.facebook.com/",
+    "hostname": "www.facebook.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768303188730,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 95,
+      "suggestion": "BAN",
+      "reason": "The page title is empty and the meta description contains encoded characters, which is unusual for a legitimate Facebook page.",
+      "timestamp": 1768303200892
+    }
+  },
+  {
+    "id": "1768303233020teih4wzui",
+    "url": "https://www.facebook.com/login/",
+    "hostname": "www.facebook.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768303233020,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 99,
+      "suggestion": "BAN",
+      "reason": "✅ Verified Official FACEBOOK Website | 🤖 Real AI Analysis: IGNORE (+99) | Legitimate Facebook login page",
+      "timestamp": 1768303233020
+    }
+  },
+  {
+    "id": "1768303471869amicbgn1i",
+    "url": "https://www.facebook.com/login/",
+    "hostname": "www.facebook.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768303471869,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 0,
+      "suggestion": "IGNORE",
+      "reason": "✅ Verified Official FACEBOOK Website",
+      "timestamp": 1768303471869
+    }
+  },
+  {
+    "id": "1768373913849ivlpm8big",
+    "url": "file:///Users/subratkumarpadhy/PhishingShield/tests/critical_threat.html?fake_host_for_testing=xn--paypal-bad.com",
+    "hostname": "",
+    "reporter": "subrat.g",
+    "timestamp": 1768373913849,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 100,
+      "suggestion": "BAN",
+      "reason": "Detected Urgency Keywords (+20) | Possible Brand Impersonation: Claims to be PAYPAL (+30) | ⚠️ Detected Punycode Domain (+50) | 🚨 MITM / SSL Stripping Detected: Login over insecure HTTP! (+50) | 🤖 Real AI Analysis: BAN (+95) | Phishing content detected, attempting to trick users into verifying identity on a local file",
+      "timestamp": 1768373913849
+    }
+  },
+  {
+    "id": "1768373964197x6cmg2b87",
+    "url": "https://www.instagram.com/",
+    "hostname": "www.instagram.com",
+    "reporter": "subrat.g",
+    "timestamp": 1768373964197,
+    "status": "pending",
+    "aiAnalysis": {
+      "score": 99,
+      "suggestion": "BAN",
+      "reason": "✅ Adaptive Trust: Domain matches Page Title (-40) | 🤖 Real AI Analysis: IGNORE (+99) | Legitimate social media website",
+      "timestamp": 1768373964197
+    },
+    "bannedAt": 1768374029864
   }
 ]
