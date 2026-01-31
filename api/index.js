@@ -245,19 +245,7 @@ app.post("/api/users/delete", async (req, res) => {
 });
 
 
-// Debug Endpoint for Gemini Models
-app.get("/api/debug/gemini-models", async (req, res) => {
-    try {
-        if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: "No GEMINI_API_KEY set" });
-        // Note: The specific fetch URL depends on the API version, but let's try a standard list
-        const key = process.env.GEMINI_API_KEY;
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-        const data = await response.json();
-        res.json(data);
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
+
 
 // Trust Score endpoints
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -297,7 +285,7 @@ app.post("/api/reports/ai-verify", async (req, res) => {
         if (provider === 'gemini' && GEMINI_API_KEY) {
             try {
                 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                 const result = await model.generateContent(prompt);
                 const response = result.response;
                 const text = response.text();
