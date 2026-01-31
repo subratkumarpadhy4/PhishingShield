@@ -82,6 +82,34 @@ app.post("/api/reports", async (req, res) => {
     }
 });
 
+app.post("/api/reports/update", async (req, res) => {
+    try {
+        await db.connectDB();
+        const { id, status } = req.body; // status: 'banned', 'ignored', 'pending'
+        if (!id || !status)
+            return res.status(400).json({ success: false, message: "ID and status required" });
+
+        const updateData = {
+            status,
+            lastUpdated: Date.now()
+        };
+        if (status === "banned") updateData.bannedAt = Date.now();
+        if (status === "ignored") updateData.ignoredAt = Date.now();
+
+        // Find by custom 'id' field, not _id
+        const report = await db.Report.findOneAndUpdate({ id }, updateData, { new: true });
+
+        if (report) {
+            res.json({ success: true, message: "Report updated" });
+        } else {
+            res.status(404).json({ success: false, message: "Report not found" });
+        }
+    } catch (error) {
+        console.error('[API] Report update error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Users endpoints
 app.get("/api/users", async (req, res) => {
     try {
