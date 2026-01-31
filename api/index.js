@@ -281,7 +281,7 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                 const groq = new Groq({ apiKey: GROQ_API_KEY });
                 const completion = await groq.chat.completions.create({
                     messages: [{ role: "user", content: prompt }],
-                    model: "mixtral-8x7b-32768",
+                    model: "llama3-70b-8192",
                     response_format: { type: "json_object" }
                 });
 
