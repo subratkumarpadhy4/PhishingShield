@@ -1,5 +1,5 @@
 // Service Worker Window Polyfill for Firebase (Legacy support removed)
-// Running on cloud backend (https://phishingshield-ruby.vercel.app)
+// Running on cloud backend (https://oculus-eight.vercel.app)
 
 let db = null; // No longer used
 
@@ -7,9 +7,9 @@ console.log("[Oculus] Service Worker Starting... " + new Date().toISOString());
 
 // API Endpoints
 const DEV_MODE = false;
-const API_BASE = DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield-ruby.vercel.app/api";
+const API_BASE = DEV_MODE ? "http://localhost:3000/api" : "https://oculus-eight.vercel.app/api";
 const LOCAL_API = "http://localhost:3000/api/reports";
-const GLOBAL_API = "https://phishingshield-ruby.vercel.app/api/reports";
+const GLOBAL_API = "https://oculus-eight.vercel.app/api/reports";
 
 // -----------------------------------------------------------------------------
 // TRUSTED EXTENSIONS WHITELIST (Tier 1: Trusted)
@@ -904,7 +904,7 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
         });
 
         // FETCH BANNED SITES FROM SERVER (GLOBAL PROTECTION)
-        const API_GLOBAL = 'https://phishingshield-ruby.vercel.app/api/reports';
+        const API_GLOBAL = 'https://oculus-eight.vercel.app/api/reports';
         const API_LOCAL = 'http://localhost:3000/api/reports';
         const nowServer = Date.now();
 

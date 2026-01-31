@@ -8,7 +8,7 @@ if (typeof window.DEV_MODE === 'undefined') {
     window.DEV_MODE = false;
 }
 var DEV_MODE = window.DEV_MODE;
-const GLOBAL_API = "https://phishingshield-ruby.vercel.app/api";
+const GLOBAL_API = "https://oculus-eight.vercel.app/api";
 
 const ThreatIntel = {
     // Configuration

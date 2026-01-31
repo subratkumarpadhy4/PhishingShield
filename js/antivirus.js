@@ -350,7 +350,7 @@ function scanSearch() {
 async function fetchVTAnalysis(resource, type, displayName) {
     try {
         // Ensure API_BASE available
-        const baseUrl = (typeof API_BASE !== 'undefined') ? API_BASE : "https://phishingshield-ruby.vercel.app/api";
+        const baseUrl = (typeof API_BASE !== 'undefined') ? API_BASE : "https://oculus-eight.vercel.app/api";
 
         console.log(`[VirusTotal] Scanning ${type}: ${resource} at ${baseUrl}/antivirus/scan`);
 
