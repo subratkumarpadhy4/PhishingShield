@@ -1,9 +1,9 @@
 // Use existing API config if available (e.g., from auth.js), otherwise define it
 if (typeof window.DEV_MODE === 'undefined') {
-    window.DEV_MODE = true; // FORCE LOCALHOST
+    window.DEV_MODE = false; // FORCE LOCALHOST
 }
 // Force it again just to be sure
-window.DEV_MODE = true;
+window.DEV_MODE = false;
 
 if (typeof window.API_BASE === 'undefined') {
     window.API_BASE = window.DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield-ruby.vercel.app/api";

@@ -2,7 +2,7 @@
 // This file is loaded externally to comply with CSP (Content Security Policy)
 
 if (typeof window.DEV_MODE === 'undefined') {
-    window.DEV_MODE = true;
+    window.DEV_MODE = false;
 }
 if (typeof window.API_BASE === 'undefined') {
     window.API_BASE = window.DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield-ruby.vercel.app/api";
