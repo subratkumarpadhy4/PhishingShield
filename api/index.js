@@ -268,7 +268,11 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                         riskScore: parsed.risk_score,
                         riskLevel: parsed.classification.toLowerCase(),
                         summary: parsed.summary,
-                        details: parsed.reasons
+                        details: parsed.reasons,
+                        // Frontend Mapping
+                        suggestion: (parsed.risk_score > 75 || parsed.classification.match(/malicious/i)) ? 'BAN' :
+                            ((parsed.risk_score > 30 || parsed.classification.match(/suspicious/i)) ? 'CAUTION' : 'SAFE'),
+                        reason: parsed.summary + "\n\n" + (parsed.reasons || []).join("\n")
                     };
                 }
             } catch (err) {
@@ -292,7 +296,11 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                         riskScore: parsed.risk_score,
                         riskLevel: parsed.classification.toLowerCase(),
                         summary: parsed.summary,
-                        details: parsed.reasons
+                        details: parsed.reasons,
+                        // Frontend Mapping
+                        suggestion: (parsed.risk_score > 75 || parsed.classification.match(/malicious/i)) ? 'BAN' :
+                            ((parsed.risk_score > 30 || parsed.classification.match(/suspicious/i)) ? 'CAUTION' : 'SAFE'),
+                        reason: parsed.summary + "\n\n" + (parsed.reasons || []).join("\n")
                     };
                 }
             } catch (err) {
