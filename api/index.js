@@ -372,6 +372,36 @@ app.post("/api/reports/ai-verify", async (req, res) => {
     }
 });
 
+// PUBLISH ANALYSIS TO USER Endpoint (Fixes 404)
+app.post("/api/reports/publish", async (req, res) => {
+    try {
+        await db.connectDB();
+        const { id } = req.body;
+
+        if (!id) return res.status(400).json({ success: false, message: "Report ID required" });
+
+        // Update using custom 'id' field
+        const report = await db.Report.findOneAndUpdate(
+            { id: id },
+            {
+                published: true,
+                lastUpdated: Date.now()
+            },
+            { new: true }
+        );
+
+        if (report) {
+            console.log(`[API] Report ${id} published to user.`);
+            res.json({ success: true, message: "Report published successfully" });
+        } else {
+            res.status(404).json({ success: false, message: "Report not found" });
+        }
+    } catch (error) {
+        console.error('[API] Publish error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Real-time AI Scan for Extension (No Report Persistence)
 app.post("/api/ai/scan", async (req, res) => {
     try {

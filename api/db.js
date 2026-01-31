@@ -77,7 +77,8 @@ const ReportSchema = new mongoose.Schema({
     ignoredAt: { type: Number },
     screenshot: { type: String },
     riskLevel: { type: String },
-    aiAnalysis: { type: mongoose.Schema.Types.Mixed }
+    aiAnalysis: { type: mongoose.Schema.Types.Mixed },
+    published: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Additional indexes (id already has unique index in schema)
