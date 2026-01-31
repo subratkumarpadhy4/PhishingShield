@@ -2227,9 +2227,9 @@ function openReportModal(report) {
                     providerLabel.title = "No AI key provided. Using local pattern matching.";
                 }
             } else {
-                providerLabel.innerText = "POWERED BY PHISHINGSHIELD";
+                providerLabel.innerText = "POWERED BY OCULUS";
                 providerLabel.style.opacity = "1";
-                providerLabel.title = "Verified by AI Threat Analysis via PhishingShield Engine";
+                providerLabel.title = "Verified by AI Threat Analysis via Oculus Engine";
             }
         }
 
