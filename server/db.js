@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+// Only load dotenv for local development - Vercel provides env vars automatically
+if (!process.env.VERCEL) {
+    require('dotenv').config({ path: path.join(__dirname, '../.env') });
+}
 
 // MongoDB connection string - supports both local and cloud (MongoDB Atlas)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/phishingshield';

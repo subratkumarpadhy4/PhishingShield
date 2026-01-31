@@ -1,6 +1,9 @@
 const express = require("express");
 const path = require("path");
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+// Only load dotenv for local development - Vercel provides env vars automatically
+if (!process.env.VERCEL) {
+    require('dotenv').config({ path: path.join(__dirname, '../.env') });
+}
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const fs = require("fs");
