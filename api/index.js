@@ -356,21 +356,111 @@ app.post("/api/reports/ai-verify", async (req, res) => {
             return res.status(500).json({ error: "No AI Provider Configured. Please set GEMINI_API_KEY or GROQ_API_KEY in Vercel." });
         }
 
-        // Save Analysis to DB Report
+        // Save analysis to report if ID is provided
         if (id) {
-            const report = await db.Report.findOne({ id });
-            if (report) {
-                report.aiAnalysis = analysisResult;
-                report.riskLevel = analysisResult.riskLevel; // Update top-level risk if desired
-                await report.save();
+            await db.Report.findByIdAndUpdate(id, {
+                aiAnalysis: analysisResult,
+                status: analysisResult.riskScore > 75 ? 'banned' : 'pending' // Auto-ban high risk? Maybe just pending.
+            });
+        }
+
+        res.json({ success: true, aiAnalysis: analysisResult });
+    } catch (error) {
+        console.error("[AI] Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Real-time AI Scan for Extension (No Report Persistence)
+app.post("/api/ai/scan", async (req, res) => {
+    try {
+        const { url, content } = req.body;
+        // Default to Groq for speed
+        let provider = 'groq';
+
+        // Fallback or selection logic could go here
+
+        console.log(`[AI Scan] Analyzing ${url}...`);
+
+        let analysisResult = {
+            riskScore: 0,
+            riskLevel: 'safe',
+            summary: "AI could not determine risk.",
+            details: []
+        };
+
+        const prompt = `
+        Analyze this URL and page content for phishing or security threats.
+        URL: ${url}
+        Content Snippet: ${content ? content.substring(0, 500) : "No content provided"}
+        
+        Provide a JSON response with:
+        - risk_score (0-100)
+        - classification (safe, suspicious, malicious)
+        - summary (1-2 sentences)
+        - reasons (array of strings)
+        
+        Strictly JSON only.
+        `;
+
+        if (GROQ_API_KEY) {
+            try {
+                const groq = new Groq({ apiKey: GROQ_API_KEY });
+                const completion = await groq.chat.completions.create({
+                    messages: [{ role: "user", content: prompt }],
+                    model: "llama-3.3-70b-versatile",
+                    response_format: { type: "json_object" }
+                });
+
+                const content = completion.choices[0]?.message?.content;
+                if (content) {
+                    const parsed = JSON.parse(content);
+                    analysisResult = {
+                        riskScore: parsed.risk_score,
+                        riskLevel: parsed.classification.toLowerCase(),
+                        summary: parsed.summary,
+                        details: parsed.reasons,
+                        suggestion: (parsed.risk_score > 75) ? 'BAN' : 'SAFE',
+                        reason: parsed.summary
+                    };
+                }
+            } catch (err) {
+                console.error("[AI Scan] Groq Error:", err.message);
+                if (!GEMINI_API_KEY) throw err; // If no backup, fail
+            }
+        }
+
+        // Fallback to Gemini if Groq failed or missing
+        if (analysisResult.riskScore === 0 && GEMINI_API_KEY) {
+            try {
+                const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                const result = await model.generateContent(prompt);
+                const response = result.response;
+                const text = response.text();
+                const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                    analysisResult = {
+                        riskScore: parsed.risk_score,
+                        riskLevel: parsed.classification.toLowerCase(),
+                        summary: parsed.summary,
+                        details: parsed.reasons,
+                        suggestion: (parsed.risk_score > 75) ? 'BAN' : 'SAFE',
+                        reason: parsed.summary
+                    };
+                }
+            } catch (err) {
+                console.error("[AI Scan] Gemini Error:", err.message);
+                throw new Error("All AI providers failed.");
             }
         }
 
         res.json({ success: true, aiAnalysis: analysisResult });
 
     } catch (error) {
-        console.error('[API] AI Verify Error:', error);
-        res.status(500).json({ error: error.message });
+        console.error("[AI Scan] Error:", error.message);
+        res.status(500).json({ error: "AI Scan Failed" });
     }
 });
 
