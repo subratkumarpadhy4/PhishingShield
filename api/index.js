@@ -276,8 +276,8 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                     };
                 }
             } catch (err) {
-                console.error("[AI] Gemini Error:", err);
-                return res.status(500).json({ error: "Gemini Analysis Failed" });
+                console.error("[AI] Gemini Error:", err.message);
+                return res.status(500).json({ error: "Gemini Analysis Failed: " + err.message });
             }
         } else if (GROQ_API_KEY) {
             // Default to Groq or if provider is groq
