@@ -245,6 +245,20 @@ app.post("/api/users/delete", async (req, res) => {
 });
 
 
+// Debug Endpoint for Gemini Models
+app.get("/api/debug/gemini-models", async (req, res) => {
+    try {
+        if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: "No GEMINI_API_KEY set" });
+        // Note: The specific fetch URL depends on the API version, but let's try a standard list
+        const key = process.env.GEMINI_API_KEY;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Trust Score endpoints
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Groq = require("groq-sdk");
@@ -283,7 +297,7 @@ app.post("/api/reports/ai-verify", async (req, res) => {
         if (provider === 'gemini' && GEMINI_API_KEY) {
             try {
                 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
                 const result = await model.generateContent(prompt);
                 const response = result.response;
                 const text = response.text();
@@ -296,12 +310,16 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                         riskScore: parsed.risk_score,
                         riskLevel: parsed.classification.toLowerCase(),
                         summary: parsed.summary,
-                        details: parsed.reasons
+                        details: parsed.reasons,
+                        // Frontend Mapping
+                        suggestion: (parsed.risk_score > 75 || parsed.classification.match(/malicious/i)) ? 'BAN' :
+                            ((parsed.risk_score > 30 || parsed.classification.match(/suspicious/i)) ? 'CAUTION' : 'SAFE'),
+                        reason: parsed.summary + "\n\n" + (parsed.reasons || []).join("\n")
                     };
                 }
             } catch (err) {
-                console.error("[AI] Gemini Error:", err);
-                return res.status(500).json({ error: "Gemini Analysis Failed" });
+                console.error("[AI] Gemini Error:", err.message);
+                return res.status(500).json({ error: "Gemini Analysis Failed: " + err.message });
             }
         } else if (GROQ_API_KEY) {
             // Default to Groq or if provider is groq
@@ -320,7 +338,11 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                         riskScore: parsed.risk_score,
                         riskLevel: parsed.classification.toLowerCase(),
                         summary: parsed.summary,
-                        details: parsed.reasons
+                        details: parsed.reasons,
+                        // Frontend Mapping
+                        suggestion: (parsed.risk_score > 75 || parsed.classification.match(/malicious/i)) ? 'BAN' :
+                            ((parsed.risk_score > 30 || parsed.classification.match(/suspicious/i)) ? 'CAUTION' : 'SAFE'),
+                        reason: parsed.summary + "\n\n" + (parsed.reasons || []).join("\n")
                     };
                 }
             } catch (err) {
