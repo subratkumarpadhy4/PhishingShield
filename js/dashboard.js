@@ -420,8 +420,8 @@ function renderUserReportsTable(reports) {
 
         let analysisHtml; // Declare analysisHtml here
 
-        if (r.aiAnalysis && r.aiAnalysis.published) {
-            const score = r.aiAnalysis.score || 0;
+        if (r.aiAnalysis && r.published) {
+            const score = r.aiAnalysis.riskScore || r.aiAnalysis.score || 0;
             const suggestion = r.aiAnalysis.suggestion || 'N/A';
             const reason = r.aiAnalysis.reason || '';
 
@@ -440,7 +440,7 @@ function renderUserReportsTable(reports) {
                     <div class="view-analysis-btn" style="color:${color}; cursor:pointer; font-size:11px; margin-top:4px; text-decoration:underline; font-weight:600;">View Details</div>
                 </div>
              `;
-        } else if (r.aiAnalysis && !r.aiAnalysis.published) {
+        } else if (r.aiAnalysis && !r.published) {
             // Case where AI has run but Admin hasn't uploaded it yet
             analysisHtml = `
                 <div style="font-size:12px;">

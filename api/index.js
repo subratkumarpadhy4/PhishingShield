@@ -301,23 +301,41 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                 const result = await model.generateContent(prompt);
                 const response = result.response;
+                // Extract JSON from markdown code block or plain text
                 const text = response.text();
-
-                // Extract JSON from markdown code block if present
-                const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\{[\s\S]*\}/);
+                let jsonStr = text;
+                const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
                 if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-                    analysisResult = {
-                        riskScore: parsed.risk_score,
-                        riskLevel: parsed.classification.toLowerCase(),
-                        summary: parsed.summary,
-                        details: parsed.reasons,
-                        // Frontend Mapping
-                        suggestion: (parsed.risk_score > 75 || parsed.classification.match(/malicious/i)) ? 'BAN' :
-                            ((parsed.risk_score > 30 || parsed.classification.match(/suspicious/i)) ? 'CAUTION' : 'SAFE'),
-                        reason: parsed.summary + "\n\n" + (parsed.reasons || []).join("\n")
-                    };
+                    jsonStr = jsonMatch[1];
+                } else {
+                    // Try to find first { and last }
+                    const firstBrace = text.indexOf('{');
+                    const lastBrace = text.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1) {
+                        jsonStr = text.substring(firstBrace, lastBrace + 1);
+                    }
                 }
+
+                const parsed = JSON.parse(jsonStr);
+
+                // Ensure riskScore is a number
+                let score = parseInt(parsed.risk_score || parsed.riskScore || 0);
+
+                // Fallback scoring if AI returns 0 but suggests BAN
+                if (score === 0 && (parsed.classification?.toLowerCase() === 'malicious' || parsed.classification?.toLowerCase() === 'suspicious')) {
+                    score = parsed.classification.toLowerCase() === 'malicious' ? 85 : 55;
+                }
+
+                analysisResult = {
+                    riskScore: score,
+                    riskLevel: (parsed.classification || 'unknown').toLowerCase(),
+                    summary: parsed.summary || "No summary provided",
+                    details: parsed.reasons || [],
+                    // Frontend Mapping
+                    suggestion: (score > 75 || parsed.classification?.match(/malicious/i)) ? 'BAN' :
+                        ((score > 30 || parsed.classification?.match(/suspicious/i)) ? 'CAUTION' : 'SAFE'),
+                    reason: (parsed.summary || "") + "\n\n" + (parsed.reasons || []).join("\n")
+                };
             } catch (err) {
                 console.error("[AI] Gemini Error:", err.message);
                 return res.status(500).json({ error: "Gemini Analysis Failed: " + err.message });
