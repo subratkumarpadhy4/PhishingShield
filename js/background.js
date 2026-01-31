@@ -3,7 +3,7 @@
 
 let db = null; // No longer used
 
-console.log("[PhishingShield] Service Worker Starting... " + new Date().toISOString());
+console.log("[Oculus] Service Worker Starting... " + new Date().toISOString());
 
 // API Endpoints
 const DEV_MODE = false;
@@ -60,7 +60,7 @@ function checkExtensionRisk(extId, extInfo) {
 if (chrome.management && chrome.management.onInstalled) {
     chrome.management.onInstalled.addListener((info) => {
         const result = checkExtensionRisk(info.id, info);
-        console.log(`[PhishingShield] New Extension Installed: ${info.name} (${result.tier})`);
+        console.log(`[Oculus] New Extension Installed: ${info.name} (${result.tier})`);
 
         if (result.tier === 'HIGH_RISK' || result.tier === 'CAUTION') {
             // 1. Notification
@@ -95,22 +95,22 @@ if (chrome.management && chrome.management.onInstalled) {
 // -----------------------------------------------------------------------------
 // CONTEXT MENU - REPORT WEBSITE
 // -----------------------------------------------------------------------------
-console.log("[PhishingShield] Initializing context menu module...");
+console.log("[Oculus] Initializing context menu module...");
 
 // Create context menu item for reporting websites
 function createContextMenu() {
-    console.log("[PhishingShield] createContextMenu() called");
+    console.log("[Oculus] createContextMenu() called");
 
     // Check if contextMenus API is available
     if (!chrome.contextMenus) {
-        console.error("[PhishingShield] contextMenus API not available - extension may not have permission");
+        console.error("[Oculus] contextMenus API not available - extension may not have permission");
         return;
     }
 
     // Remove all existing menus first to prevent duplicates
     chrome.contextMenus.removeAll(() => {
         if (chrome.runtime.lastError) {
-            console.warn("[PhishingShield] Error removing old menus:", chrome.runtime.lastError.message);
+            console.warn("[Oculus] Error removing old menus:", chrome.runtime.lastError.message);
         }
 
         // Now create the menu item
@@ -120,9 +120,9 @@ function createContextMenu() {
             contexts: ["page", "link", "selection"]
         }, () => {
             if (chrome.runtime.lastError) {
-                console.error("[PhishingShield] Context Menu Creation Error:", chrome.runtime.lastError.message);
+                console.error("[Oculus] Context Menu Creation Error:", chrome.runtime.lastError.message);
             } else {
-                console.log("[PhishingShield] ✅ Context menu created successfully!");
+                console.log("[Oculus] ✅ Context menu created successfully!");
             }
         });
     });
@@ -131,7 +131,7 @@ function createContextMenu() {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "report-to-phishingshield") {
-        console.log("[PhishingShield] Report context menu clicked");
+        console.log("[Oculus] Report context menu clicked");
 
         // Get the URL to report (either clicked link or current page)
         // info.linkUrl is available when right-clicking on a link
@@ -171,7 +171,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                 const found = cachedUsers.find(u => u.email === reporterEmail);
                 if (found && found.name) {
                     reporterName = found.name;
-                    console.log(`[PhishingShield] Found better name in cache for ${reporterEmail}: ${reporterName}`);
+                    console.log(`[Oculus] Found better name in cache for ${reporterEmail}: ${reporterName}`);
                 }
             }
 
@@ -180,8 +180,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                 ? `${reporterName} (${reporterEmail})`
                 : 'Anonymous';
 
-            console.log(`[PhishingShield] 🚩 Reporting as: ${reporterDisplay}`);
-            console.log(`[PhishingShield] Account Status: ${reporterEmail !== 'Anonymous' ? 'LOGGED_IN' : 'GUEST'}`);
+            console.log(`[Oculus] 🚩 Reporting as: ${reporterDisplay}`);
+            console.log(`[Oculus] Account Status: ${reporterEmail !== 'Anonymous' ? 'LOGGED_IN' : 'GUEST'}`);
 
             let hostname;
             try {
@@ -213,7 +213,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                 // Use Shared Submission Logic (Offline Sync Supported)
                 submitReport(reportPayload, (res) => {
                     // Success (or Queued)
-                    console.log("[PhishingShield] Context Menu Report Handled:", res);
+                    console.log("[Oculus] Context Menu Report Handled:", res);
 
                     // Add XP
                     chrome.storage.local.get(['userXP', 'userLevel'], (data) => {
@@ -248,10 +248,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             if (tab && tab.id) {
                 chrome.tabs.sendMessage(tab.id, { type: "GET_RISK_ANALYSIS" }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.log("[PhishingShield] Could not fetch analysis (Script blocked?), sending basic report.");
+                        console.log("[Oculus] Could not fetch analysis (Script blocked?), sending basic report.");
                         sendReport(null);
                     } else {
-                        console.log("[PhishingShield] Got Analysis from Tab:", response);
+                        console.log("[Oculus] Got Analysis from Tab:", response);
                         sendReport(response);
                     }
                 });
@@ -270,9 +270,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // -----------------------------------------------------------------------------
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === 'keepAlive') {
-        console.log("[PhishingShield] Keep-Alive Connection Established");
+        console.log("[Oculus] Keep-Alive Connection Established");
         port.onDisconnect.addListener(() => {
-            console.log("[PhishingShield] Keep-Alive Connection Closed - Client Disconnected");
+            console.log("[Oculus] Keep-Alive Connection Closed - Client Disconnected");
         });
         // Optional: Send a heartbeat back periodically if really needed, but connection itself helps
     }
@@ -311,11 +311,11 @@ function submitReport(payload, sendResponse) {
                 return res.json();
             })
             .then(data => {
-                console.log("[PhishingShield] ✅ Report Synced to Global Server:", data);
+                console.log("[Oculus] ✅ Report Synced to Global Server:", data);
                 if (sendResponse) sendResponse({ success: true, data: data });
             })
             .catch(err => {
-                console.warn("[PhishingShield] ⚠️ Global Sync Failed. Queuing report...", err);
+                console.warn("[Oculus] ⚠️ Global Sync Failed. Queuing report...", err);
                 // Queue for later
                 queueReportForSync(payload);
                 if (sendResponse) sendResponse({ success: true, queued: true }); // treat as success to client
@@ -338,7 +338,7 @@ function submitReport(payload, sendResponse) {
             return res.json();
         })
         .then(data => {
-            console.log("[PhishingShield] ✅ Report Sent to LOCAL Server:", data);
+            console.log("[Oculus] ✅ Report Sent to LOCAL Server:", data);
             if (sendResponse) sendResponse({ success: true, data: data });
 
             // Backup: Fire-and-forget to Global as well (Dual Write for consistency)
@@ -349,7 +349,7 @@ function submitReport(payload, sendResponse) {
             }).catch(e => console.log("Global backup write failed (non-critical):", e));
         })
         .catch(err => {
-            console.log("[PhishingShield] Local Server Unreachable (or timeout). Falling back to Global...", err);
+            console.log("[Oculus] Local Server Unreachable (or timeout). Falling back to Global...", err);
             tryGlobal();
         });
 }
@@ -360,7 +360,7 @@ function queueReportForSync(payload) {
         if (!queue.some(r => r.id === payload.id)) {
             queue.push(payload);
             chrome.storage.local.set({ pendingReports: queue }, () => {
-                console.log(`[PhishingShield] Report queued. Total pending: ${queue.length}`);
+                console.log(`[Oculus] Report queued. Total pending: ${queue.length}`);
                 // Try to sync again soon
                 chrome.alarms.create('retrySync', { delayInMinutes: 1 });
             });
@@ -373,7 +373,7 @@ function processPendingReports() {
         const queue = res.pendingReports || [];
         if (queue.length === 0) return;
 
-        console.log(`[PhishingShield] 🔄 Processing ${queue.length} pending reports...`);
+        console.log(`[Oculus] 🔄 Processing ${queue.length} pending reports...`);
 
         // Take first item
         const report = queue[0];
@@ -385,7 +385,7 @@ function processPendingReports() {
         })
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                console.log(`[PhishingShield] ✅ Pending report ${report.id} synced!`);
+                console.log(`[Oculus] ✅ Pending report ${report.id} synced!`);
 
                 // Remove from queue on success
                 const newQueue = queue.slice(1);
@@ -397,7 +397,7 @@ function processPendingReports() {
                 });
             })
             .catch(err => {
-                console.warn(`[PhishingShield] Sync retry failed for ${report.id}:`, err);
+                console.warn(`[Oculus] Sync retry failed for ${report.id}:`, err);
                 // Keep in queue, wait for next alarm
             });
     });
@@ -417,13 +417,13 @@ chrome.alarms.get('periodicSync', (a) => {
 
 // Also trigger on online check
 self.addEventListener('online', () => {
-    console.log("[PhishingShield] Came Online! Syncing...");
+    console.log("[Oculus] Came Online! Syncing...");
     processPendingReports();
 });
 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    // console.log("[PhishingShield] 🔵 Message received:", request.type);
+    // console.log("[Oculus] 🔵 Message received:", request.type);
 
     // PING to wake up service worker
     if (request.type === "PING") {
@@ -436,7 +436,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const extId = request.id;
         chrome.management.get(extId, (info) => {
             if (chrome.runtime.lastError) {
-                console.warn(`[PhishingShield] Could not query extension ${extId}:`, chrome.runtime.lastError);
+                console.warn(`[Oculus] Could not query extension ${extId}:`, chrome.runtime.lastError);
                 sendResponse({ tier: 'HIGH_RISK', name: 'Unknown' });
                 return;
             }
@@ -558,11 +558,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             content: request.content
         };
 
-        console.log(`[PhishingShield] 🤖 Initiating AI Scan for ${payload.url.substring(0, 50)}...`);
+        console.log(`[Oculus] 🤖 Initiating AI Scan for ${payload.url.substring(0, 50)}...`);
 
         // Use API_BASE for AI scanning (Local or Global)
         const scanEndpoint = `${API_BASE}/ai/scan`;
-        console.log(`[PhishingShield] 🤖 Initiating AI Scan via ${scanEndpoint}...`);
+        console.log(`[Oculus] 🤖 Initiating AI Scan via ${scanEndpoint}...`);
 
         fetch(scanEndpoint, {
             method: 'POST',
@@ -574,11 +574,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return res.json();
             })
             .then(data => {
-                console.log("[PhishingShield] ✅ AI Scan Success:", data);
+                console.log("[Oculus] ✅ AI Scan Success:", data);
                 sendResponse(data);
             })
             .catch(err => {
-                console.error("[PhishingShield] AI Scan Failed:", err);
+                console.error("[Oculus] AI Scan Failed:", err);
                 sendResponse({ success: false, error: err.message });
             });
 
@@ -598,11 +598,11 @@ function calculateLevel(xp) {
 }
 
 function updateXP(amount) {
-    console.log("[PhishingShield] ========== updateXP CALLED ==========");
-    console.log("[PhishingShield] Amount:", amount);
+    console.log("[Oculus] ========== updateXP CALLED ==========");
+    console.log("[Oculus] Amount:", amount);
 
     if (amount === undefined || amount === null || amount === 0) {
-        console.warn("[PhishingShield] Invalid XP amount:", amount);
+        console.warn("[Oculus] Invalid XP amount:", amount);
         return;
     }
 
@@ -628,13 +628,13 @@ function updateXP(amount) {
         }
         setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
     } catch (e) {
-        console.warn("[PhishingShield] Badge update failed:", e);
+        console.warn("[Oculus] Badge update failed:", e);
     }
 
     // Get current XP and update it
-    console.log("[PhishingShield] Reading storage...");
+    console.log("[Oculus] Reading storage...");
     chrome.storage.local.get(['userXP', 'userLevel', 'users', 'currentUser'], (data) => {
-        console.log("[PhishingShield] Storage data received:", data);
+        console.log("[Oculus] Storage data received:", data);
         // Initialize if not set
         let currentXP = typeof data.userXP === 'number' ? data.userXP : 0;
         let currentLevel = typeof data.userLevel === 'number' ? data.userLevel : 1;
@@ -649,7 +649,7 @@ function updateXP(amount) {
         }
         const newLevel = calculateLevel(currentXP);
 
-        console.log("[PhishingShield] XP Update: " + (currentXP - amount) + " + " + amount + " = " + currentXP + " (Level " + newLevel + ")");
+        console.log("[Oculus] XP Update: " + (currentXP - amount) + " + " + amount + " = " + currentXP + " (Level " + newLevel + ")");
 
         // Check for level up
         if (newLevel > currentLevel) {
@@ -702,12 +702,12 @@ function updateXP(amount) {
         }
 
         // Save to storage
-        console.log("[PhishingShield] Saving to storage:", updateData);
+        console.log("[Oculus] Saving to storage:", updateData);
         chrome.storage.local.set(updateData, () => {
             if (chrome.runtime.lastError) {
-                console.error("[PhishingShield] ❌ FAILED to save XP:", chrome.runtime.lastError);
+                console.error("[Oculus] ❌ FAILED to save XP:", chrome.runtime.lastError);
             } else {
-                console.log("[PhishingShield] ✅ XP saved successfully:", currentXP);
+                console.log("[Oculus] ✅ XP saved successfully:", currentXP);
 
                 // [FIX] Trigger Immediate Sync with DIRECT DATA
                 // Prevents race conditions where storage isn't ready
@@ -723,7 +723,7 @@ function updateXP(amount) {
             }
         });
     });
-    console.log("[PhishingShield] ========== updateXP EXIT ==========");
+    console.log("[Oculus] ========== updateXP EXIT ==========");
 }
 
 function updateSafeStreak(isCritical) {
@@ -756,13 +756,13 @@ function updateFortressRules(enabled) {
                 }
             }]
         }, () => {
-            console.log("[PhishingShield] Fortress Mode: 3rd Party Scripts Blocked.");
+            console.log("[Oculus] Fortress Mode: 3rd Party Scripts Blocked.");
         });
     } else {
         chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [FORTRESS_RULE_ID]
         }, () => {
-            console.log("[PhishingShield] Fortress Mode: Normal Script Access Restored.");
+            console.log("[Oculus] Fortress Mode: Normal Script Access Restored.");
         });
     }
 }
@@ -774,45 +774,45 @@ console.log("PhishingShield Service Worker Loaded - " + new Date().toISOString()
 try {
     createContextMenu();
 } catch (e) {
-    console.error("[PhishingShield] Error creating context menu on startup:", e);
+    console.error("[Oculus] Error creating context menu on startup:", e);
 }
 
 // Create context menu on install/update
 chrome.runtime.onInstalled.addListener((details) => {
-    console.log("[PhishingShield] Extension installed/updated:", details.reason);
+    console.log("[Oculus] Extension installed/updated:", details.reason);
     createContextMenu();
 });
 
 // Also create on browser startup
 chrome.runtime.onStartup.addListener(() => {
-    console.log("[PhishingShield] Browser startup");
+    console.log("[Oculus] Browser startup");
     createContextMenu();
 });
 
 // Initialize XP system on startup
 chrome.storage.local.get(['userXP', 'userLevel'], (result) => {
-    console.log("[PhishingShield] Startup - Current XP:", result.userXP, "Level:", result.userLevel);
+    console.log("[Oculus] Startup - Current XP:", result.userXP, "Level:", result.userLevel);
     if (result.userXP === undefined || result.userXP === null) {
         chrome.storage.local.set({ userXP: 0, userLevel: 1 }, () => {
-            console.log("[PhishingShield] ✅ XP system initialized to 0");
+            console.log("[Oculus] ✅ XP system initialized to 0");
         });
     } else {
-        console.log("[PhishingShield] XP system already initialized:", result.userXP);
+        console.log("[Oculus] XP system already initialized:", result.userXP);
     }
 });
 
 // Listen for storage changes to debug
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes.userXP) {
-        console.log("[PhishingShield] 🔔 Storage changed - userXP:", changes.userXP.newValue, "(was:", changes.userXP.oldValue, ")");
+        console.log("[Oculus] 🔔 Storage changed - userXP:", changes.userXP.newValue, "(was:", changes.userXP.oldValue, ")");
     }
 });
 
 // Test function - call this from console to verify service worker is active
 self.testServiceWorker = function () {
-    console.log("[PhishingShield] ✅ Service Worker is ACTIVE!");
+    console.log("[Oculus] ✅ Service Worker is ACTIVE!");
     chrome.storage.local.get(['userXP', 'userLevel'], (r) => {
-        console.log("[PhishingShield] Current XP:", r.userXP, "Level:", r.userLevel);
+        console.log("[Oculus] Current XP:", r.userXP, "Level:", r.userLevel);
     });
     return true;
 };
@@ -910,7 +910,7 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
 
         // Use cache if available and not expired, unless force refresh
         if (!forceRefresh && blocklistCache.data && (nowServer - blocklistCache.timestamp) < blocklistCache.TTL) {
-            console.log("[PhishingShield] Using cached blocklist data");
+            console.log("[Oculus] Using cached blocklist data");
             processBlocklist(blocklistCache.data, banned, bypassTokens, callback);
             return;
         }
@@ -931,7 +931,7 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
                 }
             });
 
-            console.log(`[PhishingShield] Fetched Reports: ${localData.length} Local, ${globalData.length} Global. Merged: ${mergedReports.length}`);
+            console.log(`[Oculus] Fetched Reports: ${localData.length} Local, ${globalData.length} Global. Merged: ${mergedReports.length}`);
 
             // Update cache
             blocklistCache.data = mergedReports;
@@ -959,7 +959,7 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
                 });
 
                 if (cleanedBlacklist.length !== blacklist.length) {
-                    console.log(`[PhishingShield] Cleaning blacklist: removed ${blacklist.length - cleanedBlacklist.length} unbanned URLs`);
+                    console.log(`[Oculus] Cleaning blacklist: removed ${blacklist.length - cleanedBlacklist.length} unbanned URLs`);
                     chrome.storage.local.set({ blacklist: cleanedBlacklist });
                 }
             }
@@ -1049,7 +1049,7 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
 
         // If server has this URL and it's NOT banned, skip it (it's been unbanned)
         if (serverReport && serverReport.status !== 'banned') {
-            console.log(`[PhishingShield] Skipping ${r.url} - server status is '${serverReport.status}' (unbanned)`);
+            console.log(`[Oculus] Skipping ${r.url} - server status is '${serverReport.status}' (unbanned)`);
             return; // Skip this banned entry
         }
 
@@ -1097,7 +1097,7 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
         return true;
     });
 
-    console.log(`[PhishingShield] Blocklist: ${banned.length} sites (${bypassTokens.length} bypassed)`);
+    console.log(`[Oculus] Blocklist: ${banned.length} sites (${bypassTokens.length} bypassed)`);
 
     // Convert to Rules
     const newRules = banned.map((r, index) => {
@@ -1129,7 +1129,7 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
             removeRuleIds: removeIds,
             addRules: newRules
         }, () => {
-            console.log(`[PhishingShield] Blocklist Updated: ${newRules.length} sites blocked globally.`);
+            console.log(`[Oculus] Blocklist Updated: ${newRules.length} sites blocked globally.`);
             if (callback) callback();
         });
     });
@@ -1150,7 +1150,7 @@ function startBlocklistSync() {
     if (blocklistSyncInterval) {
         clearInterval(blocklistSyncInterval);
     }
-    console.log("[PhishingShield] Periodic sync disabled. Use 'Force Sync' in Admin Panel.");
+    console.log("[Oculus] Periodic sync disabled. Use 'Force Sync' in Admin Panel.");
 
     // Sync every 10 seconds (Global Protection Heartbeat)
     blocklistSyncInterval = setInterval(() => {
@@ -1158,7 +1158,7 @@ function startBlocklistSync() {
             // success callback (silent)
         });
     }, 10000); // 10 seconds
-    console.log("[PhishingShield] Periodic blocklist sync enabled (10s)");
+    console.log("[Oculus] Periodic blocklist sync enabled (10s)");
 }
 
 // Start the sync interval (Effectively does nothing now)
@@ -1168,7 +1168,7 @@ startBlocklistSync();
 /*
 chrome.tabs.onActivated.addListener(() => {
     updateBlocklistFromStorage(null, () => {
-        console.log("[PhishingShield] Blocklist synced (tab activated)");
+        console.log("[Oculus] Blocklist synced (tab activated)");
     });
 });
 */
@@ -1199,8 +1199,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
             });
 
             if (matchingToken) {
-                console.log('[PhishingShield] User navigated to bypassed URL:', tab.url);
-                console.log('[PhishingShield] Marking bypass token as used (one-time use)');
+                console.log('[Oculus] User navigated to bypassed URL:', tab.url);
+                console.log('[Oculus] Marking bypass token as used (one-time use)');
 
                 // Mark token as used
                 matchingToken.used = true;
@@ -1209,7 +1209,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
                 // Save updated tokens
                 chrome.storage.local.set({ bypassTokens: tokens }, () => {
                     // Rebuild blocklist to re-block this URL
-                    console.log('[PhishingShield] Rebuilding blocklist - URL will be blocked again on next visit');
+                    console.log('[Oculus] Rebuilding blocklist - URL will be blocked again on next visit');
                     updateBlocklistFromStorage();
                 });
             }
@@ -1234,7 +1234,7 @@ function syncXPToServer(customData = {}, directData = null) {
     const doSync = (res) => {
         // Sync always if user is logged in (acts as heartbeat to fetch server updates like Admin Promotions)
         if (res.currentUser && res.currentUser.email) {
-            console.log("[PhishingShield] Syncing XP to Global Leaderboard...", customData);
+            console.log("[Oculus] Syncing XP to Global Leaderboard...", customData);
 
             // CRITICAL: If lastXpUpdate is missing, use a timestamp that's OLDER than current time
             const syncTimestamp = res.lastXpUpdate || (res.pendingXPSync ? Date.now() : Date.now() - 60000); // If no timestamp, use 1 min ago
@@ -1259,7 +1259,7 @@ function syncXPToServer(customData = {}, directData = null) {
 
                     // HANDLE DELETED USER (Force Logout)
                     if (r.status === 410 || r.status === 404 || (data.error === "USER_DELETED") || (data.error === "USER_VIOLATION")) {
-                        console.warn("[PhishingShield] Account DELETED by Server. Logging out...");
+                        console.warn("[Oculus] Account DELETED by Server. Logging out...");
                         chrome.storage.local.remove(['currentUser', 'userXP', 'userLevel', 'pendingXPSync'], () => {
                             chrome.notifications.create({
                                 type: 'basic',
@@ -1280,7 +1280,7 @@ function syncXPToServer(customData = {}, directData = null) {
                     }
 
                     if (data.success) {
-                        console.log("[PhishingShield] ✅ XP Global Sync Successful");
+                        console.log("[Oculus] ✅ XP Global Sync Successful");
                         chrome.storage.local.set({ pendingXPSync: false });
 
                         // 2-Way Sync: Always check server response and update if server has newer data
@@ -1293,9 +1293,9 @@ function syncXPToServer(customData = {}, directData = null) {
                             // This ensures admin edits propagate to client even if client sent old XP
                             if (serverTime > localTime || data.user.xp !== res.userXP) {
                                 if (serverTime > localTime) {
-                                    console.log(`[PhishingShield] 📥 Server is newer (${serverTime} > ${localTime}). Updating local XP: ${res.userXP} -> ${data.user.xp}`);
+                                    console.log(`[Oculus] 📥 Server is newer (${serverTime} > ${localTime}). Updating local XP: ${res.userXP} -> ${data.user.xp}`);
                                 } else {
-                                    console.log(`[PhishingShield] 📥 Server XP differs (${res.userXP} -> ${data.user.xp}). Updating (likely admin edit).`);
+                                    console.log(`[Oculus] 📥 Server XP differs (${res.userXP} -> ${data.user.xp}). Updating (likely admin edit).`);
                                 }
                                 chrome.storage.local.set({
                                     userXP: data.user.xp,
@@ -1314,19 +1314,19 @@ function syncXPToServer(customData = {}, directData = null) {
                                     });
                                 });
                             } else {
-                                console.log(`[PhishingShield] Local is newer (${localTime} >= ${serverTime}) and XP matches. Keeping local XP: ${res.userXP}`);
+                                console.log(`[Oculus] Local is newer (${localTime} >= ${serverTime}) and XP matches. Keeping local XP: ${res.userXP}`);
                             }
                         }
                     } else if (r.status === 403 || r.status === 401) {
                         // Soft Logout / Auth Token Invalid?
-                        console.warn("[PhishingShield] Auth Error during sync:", data.message);
+                        console.warn("[Oculus] Auth Error during sync:", data.message);
                     }
 
                     // --- REPORT SELF-HEALING (Persistence) ---
                     // Check if my reports exist on server. If not (Wipe), re-upload.
                     if (data.success) syncReportsHeal();
                 })
-                .catch(e => console.error("[PhishingShield] ❌ XP Sync Failed:", e));
+                .catch(e => console.error("[Oculus] ❌ XP Sync Failed:", e));
         }
     };
 
@@ -1349,7 +1349,7 @@ function syncReportsHeal() {
 
                 myReports.forEach(localR => {
                     if (!serverUrls.has(localR.url)) {
-                        console.warn(`[PhishingShield] Report missing on server (Wipe?): ${localR.url}. Re-uploading...`);
+                        console.warn(`[Oculus] Report missing on server (Wipe?): ${localR.url}. Re-uploading...`);
                         fetch(`${API_BASE}/reports`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1375,12 +1375,12 @@ if (chrome.downloads && chrome.downloads.onCreated) {
             return;
         }
 
-        console.log(`[PhishingShield] Intercepting download: ${downloadItem.url}`);
+        console.log(`[Oculus] Intercepting download: ${downloadItem.url}`);
 
         // 2. PAUSE DOWNLOAD FOR ANALYSIS
         chrome.downloads.pause(downloadItem.id, async () => {
             if (chrome.runtime.lastError) {
-                console.warn("[PhishingShield] Could not pause download:", chrome.runtime.lastError);
+                console.warn("[Oculus] Could not pause download:", chrome.runtime.lastError);
                 return; // Already completed or error
             }
 
@@ -1455,7 +1455,7 @@ if (chrome.downloads && chrome.downloads.onCreated) {
                 }
 
             } catch (error) {
-                console.error("[PhishingShield] Download scan error:", error);
+                console.error("[Oculus] Download scan error:", error);
                 // Fail Open (Resume)
                 chrome.downloads.resume(downloadItem.id);
             }
@@ -1484,5 +1484,5 @@ if (chrome.downloads && chrome.downloads.onCreated) {
     });
 
 } else {
-    console.warn("[PhishingShield] chrome.downloads API not available.");
+    console.warn("[Oculus] chrome.downloads API not available.");
 }

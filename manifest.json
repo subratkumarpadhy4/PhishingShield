@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "PhishingShield",
+  "name": "Oculus",
   "version": "1.1",
   "description": "Proactively detects, warns against, and prevents navigation to malicious phishing links.",
   "icons": {
