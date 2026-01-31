@@ -319,7 +319,7 @@ app.post("/api/send-otp", async (req, res) => {
             });
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
         user.otp = otp;
         user.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 mins
