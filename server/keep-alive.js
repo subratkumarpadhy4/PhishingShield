@@ -1,6 +1,6 @@
 // Native fetch is used (Node 18+)
 
-const GLOBAL_URL = 'https://phishingshield.onrender.com/api/reports';
+const GLOBAL_URL = 'https://phishingshield-ruby.vercel.app/api/reports';
 const INTERVAL_MS = 14 * 60 * 1000; // 14 minutes (Render sleeps after 15)
 
 console.log(`[Keep-Alive] Starting heartbeat for ${GLOBAL_URL}`);

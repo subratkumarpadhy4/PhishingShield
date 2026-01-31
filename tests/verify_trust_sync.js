@@ -29,7 +29,7 @@ function fetchJson(url) {
 
 async function verifySync() {
     const domain = 'example.com';
-    const globalUrl = `https://phishingshield.onrender.com/api/trust/score?domain=${domain}`;
+    const globalUrl = `https://phishingshield-ruby.vercel.app/api/trust/score?domain=${domain}`;
     const localUrl = `http://localhost:3000/api/trust/score?domain=${domain}`;
 
     console.log(`[Verify] Checking Global Server: ${globalUrl}`);

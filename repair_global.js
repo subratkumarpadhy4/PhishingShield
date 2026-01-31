@@ -4,7 +4,7 @@ const path = require('path');
 // No, the user logic relies on it.
 
 const REPORTS_FILE = path.join(__dirname, 'server', 'reports.json');
-const GLOBAL_URL = 'https://phishingshield.onrender.com';
+const GLOBAL_URL = 'https://phishingshield-ruby.vercel.app';
 
 async function repair() {
     console.log("Starting Manual Repair...");

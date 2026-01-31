@@ -80,7 +80,7 @@ if (!process.env.RENDER && !process.env.VERCEL) {
             let syncCount = 0;
             for (const entry of localData) {
                 if ((entry.safe || 0) + (entry.unsafe || 0) > 0) {
-                    await fetchWithTimeout('https://phishingshield.onrender.com/api/trust/seed', {
+                    await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/trust/seed', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(entry)
@@ -360,7 +360,7 @@ app.get('/api/trust/score', async (req, res) => {
             const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s timeout for faster response
 
             const globalRes = await fetchWithTimeout(
-                `https://phishingshield.onrender.com/api/trust/score?domain=${normalizedDomain}`,
+                `https://phishingshield-ruby.vercel.app/api/trust/score?domain=${normalizedDomain}`,
                 {},
                 1000
             );
@@ -657,7 +657,7 @@ app.post('/api/trust/vote', async (req, res) => {
     if (!process.env.RENDER && !process.env.VERCEL) {
         console.log(`[Trust-Sync] [SEND] Forwarding vote to global server: ${normalizedDomain} = ${vote} (User: ${effectiveUserId})`);
         // Use effectiveUserId to ensure anonymous votes are tracked consistently globally
-        fetchWithTimeout('https://phishingshield.onrender.com/api/trust/vote', {
+        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/trust/vote', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -741,9 +741,9 @@ app.get('/api/trust/all', async (req, res) => {
         // CRITICAL: Always fetch global data to ensure sync across devices
         if (!process.env.RENDER && !process.env.VERCEL) {
             try {
-                log('[Trust] [SYNC] Fetching global trust data from https://phishingshield.onrender.com/api/trust/all...');
+                log('[Trust] [SYNC] Fetching global trust data from https://phishingshield-ruby.vercel.app/api/trust/all...');
                 const fetchStart = Date.now();
-                const globalResponse = await fetchWithTimeout('https://phishingshield.onrender.com/api/trust/all', {
+                const globalResponse = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/trust/all', {
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
@@ -905,7 +905,7 @@ app.get('/api/trust/all', async (req, res) => {
                 if (missingInGlobal.length > 0) {
                     console.log(`[Trust-Sync] Found ${missingInGlobal.length} domains missing globally. Syncing...`);
                     missingInGlobal.forEach(item => {
-                        fetchWithTimeout('https://phishingshield.onrender.com/api/trust/seed', {
+                        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/trust/seed', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(item)
@@ -1014,7 +1014,7 @@ app.post('/api/trust/sync', async (req, res) => {
             // We use a loop with small delay to avoid overwhelming the cloud server
             for (const entry of localData) {
                 try {
-                    await fetchWithTimeout('https://phishingshield.onrender.com/api/trust/seed', {
+                    await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/trust/seed', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(entry)
@@ -1065,7 +1065,7 @@ app.get('/api/logs/all', async (req, res) => {
         let globalLogs = [];
         try {
             if (!process.env.RENDER && !process.env.VERCEL) {
-                const response = await fetchWithTimeout('https://phishingshield.onrender.com/api/logs/all', {}, 2000);
+                const response = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/logs/all', {}, 2000);
                 if (response.ok) {
                     globalLogs = await response.json();
                     console.log(`[Logs] Fetched ${globalLogs.length} global threat logs`);
@@ -1122,7 +1122,7 @@ app.post('/api/logs', async (req, res) => {
 
     // 2. Forward to global server
     if (!process.env.RENDER && !process.env.VERCEL) {
-        fetchWithTimeout('https://phishingshield.onrender.com/api/logs', {
+        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/logs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log)
@@ -1151,7 +1151,7 @@ app.get("/api/reports", async (req, res) => {
     if (!process.env.RENDER && !process.env.VERCEL) {
         try {
             // Fetch global reports with short timeout
-            const globalRes = await fetchWithTimeout('https://phishingshield.onrender.com/api/reports', {}, 2000);
+            const globalRes = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports', {}, 2000);
 
             if (globalRes.ok) {
                 const globalReports = await globalRes.json();
@@ -1269,7 +1269,7 @@ app.post("/api/reports", async (req, res) => {
 
     // --- GLOBAL SYNC (FORWARD WRITE) ---
     if (!process.env.RENDER && !process.env.VERCEL) {
-        fetchWithTimeout('https://phishingshield.onrender.com/api/reports', {
+        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(report)
@@ -1401,7 +1401,7 @@ async function sendEmail(to, subject, htmlContent, options = {}) {
         const config = {
             headers: {
                 "Content-Type": "application/json",
-                Origin: "https://phishingshield.onrender.com",
+                Origin: "https://phishingshield-ruby.vercel.app",
             },
         };
 
@@ -1723,7 +1723,7 @@ app.post("/api/users/sync", async (req, res) => {
         // Forward this update to the central cloud server
         // CRITICAL: Always forward forceUpdate/admin edits to global server
         if (userData.forceUpdate === true) {
-            fetchWithTimeout('https://phishingshield.onrender.com/api/users/sync', {
+            fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData) // Forward with forceUpdate flag
@@ -1738,7 +1738,7 @@ app.post("/api/users/sync", async (req, res) => {
                 .catch(e => console.warn(`[Global-Forward] Failed to sync user: ${e.message}`));
         } else {
             // Regular sync - forward but don't block
-            fetchWithTimeout('https://phishingshield.onrender.com/api/users/sync', {
+            fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -1778,7 +1778,7 @@ app.post("/api/users/create", async (req, res) => {
 
     // Global Sync (Forward)
     try {
-        fetchWithTimeout('https://phishingshield.onrender.com/api/users/create', {
+        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(finalUser)
@@ -1805,7 +1805,7 @@ app.post("/api/users/reset-password", async (req, res) => {
         console.log(`[User] Password reset for: ${email}`);
 
         // --- GLOBAL SYNC ---
-        fetchWithTimeout('https://phishingshield.onrender.com/api/users/reset-password', {
+        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -1873,7 +1873,7 @@ app.post("/api/users/delete", async (req, res) => {
         console.log(`[User] Deleted user: ${targetEmail} (Original: ${email})`);
 
         // --- GLOBAL SYNC ---
-        fetchWithTimeout('https://phishingshield.onrender.com/api/users/delete', {
+        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: targetEmail })
@@ -1928,7 +1928,7 @@ app.post("/api/auth/admin/login", async (req, res) => {
         // --- GLOBAL SYNC FALLBACK ---
         console.log(`[Login] User ${email} not found locally. Checking global...`);
         try {
-            const r = await fetchWithTimeout('https://phishingshield.onrender.com/api/users', {}, 2000);
+            const r = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users', {}, 2000);
             if (r.ok) {
                 const globalUsers = await r.json();
                 if (Array.isArray(globalUsers)) {
@@ -2270,7 +2270,7 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                 console.log("[AI-Verify] Not found via URL either. Checking Global Server...");
                 try {
                     // Use the same global URL as the sync process
-                    const response = await fetchWithTimeout('https://phishingshield.onrender.com/api/reports', {}, 2000);
+                    const response = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports', {}, 2000);
                     if (response.ok) {
                         const globalReports = await response.json();
                         let globalReport = globalReports.find(r => r.id === id);
@@ -2658,7 +2658,7 @@ app.post("/api/reports/update", async (req, res) => {
         // --- GLOBAL SYNC (FORWARD WRITE) ---
         // Fire and forget - don't block local success
         if (!process.env.RENDER && !process.env.VERCEL) {
-            fetchWithTimeout('https://phishingshield.onrender.com/api/reports/update', {
+            fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status })
@@ -2693,7 +2693,7 @@ app.post("/api/reports/delete", async (req, res) => {
 
         // --- GLOBAL SYNC ---
         if (!process.env.RENDER && !process.env.VERCEL) {
-            fetchWithTimeout('https://phishingshield.onrender.com/api/reports/delete', {
+            fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids })
@@ -2722,7 +2722,7 @@ app.get("/api/reports/global-sync", async (req, res) => {
         let globalReports = [];
         try {
             // Native fetch in Node 18+
-            const response = await fetchWithTimeout('https://phishingshield.onrender.com/api/reports');
+            const response = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports');
             if (response.ok) {
                 globalReports = await response.json();
                 console.log(`[Global-Sync] Fetched ${globalReports.length} global reports.`);
@@ -2815,7 +2815,7 @@ app.get("/api/reports/global-sync", async (req, res) => {
                         mergedReportsMap.set(globalR.id, winner); // Update local cache with winning hybrid
                         dataChanged = true;
 
-                        fetchWithTimeout('https://phishingshield.onrender.com/api/reports/update', {
+                        fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/update', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ id: globalR.id, status: lStatus }) // Use canonical Global ID
@@ -2841,7 +2841,7 @@ app.get("/api/reports/global-sync", async (req, res) => {
                                 dataChanged = true;
                                 resolved = true;
 
-                                fetchWithTimeout('https://phishingshield.onrender.com/api/reports/update', {
+                                fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/update', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ id: globalR.id, status: lStatus })
@@ -2860,7 +2860,7 @@ app.get("/api/reports/global-sync", async (req, res) => {
                                 mergedReportsMap.set(globalR.id, winner);
                                 dataChanged = true;
 
-                                fetchWithTimeout('https://phishingshield.onrender.com/api/reports/update', {
+                                fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/update', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ id: globalR.id, status: lStatus })
@@ -2876,14 +2876,14 @@ app.get("/api/reports/global-sync", async (req, res) => {
                 if (!processedIds.has(id)) {
                     console.log(`[Global-Sync] Found Local-Only report ${id} (${report.url}). Uploading to Cloud...`);
                     // Fire and forget upload
-                    fetchWithTimeout('https://phishingshield.onrender.com/api/reports', {
+                    fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(report)
                     }).then(() => {
                         // Also sync status if not pending
                         if (report.status && report.status !== 'pending') {
-                            fetchWithTimeout('https://phishingshield.onrender.com/api/reports/update', {
+                            fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/update', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ id: report.id, status: report.status })
@@ -2913,14 +2913,14 @@ app.get("/api/reports/global-sync", async (req, res) => {
                 let successCount = 0;
                 for (const r of localReports) {
                     try {
-                        await fetchWithTimeout('https://phishingshield.onrender.com/api/reports', {
+                        await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(r)
                         });
                         // Also sync status if it's not pending
                         if (r.status !== 'pending') {
-                            await fetchWithTimeout('https://phishingshield.onrender.com/api/reports/update', {
+                            await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/reports/update', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ id: r.id, status: r.status })
@@ -2959,7 +2959,7 @@ app.get("/api/users/global-sync", async (req, res) => {
 
         let globalUsers = [];
         try {
-            const response = await fetchWithTimeout('https://phishingshield.onrender.com/api/users');
+            const response = await fetchWithTimeout('https://phishingshield-ruby.vercel.app/api/users');
             if (response.ok) {
                 globalUsers = await response.json();
                 console.log(`[User-Sync] Fetched ${globalUsers.length} global users.`);

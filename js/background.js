@@ -1,5 +1,5 @@
 // Service Worker Window Polyfill for Firebase (Legacy support removed)
-// Running on cloud backend (https://phishingshield.onrender.com)
+// Running on cloud backend (https://phishingshield-ruby.vercel.app)
 
 let db = null; // No longer used
 
@@ -7,9 +7,9 @@ console.log("[PhishingShield] Service Worker Starting... " + new Date().toISOStr
 
 // API Endpoints
 const DEV_MODE = true;
-const API_BASE = DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield.onrender.com/api";
+const API_BASE = DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield-ruby.vercel.app/api";
 const LOCAL_API = "http://localhost:3000/api/reports";
-const GLOBAL_API = "https://phishingshield.onrender.com/api/reports";
+const GLOBAL_API = "https://phishingshield-ruby.vercel.app/api/reports";
 
 // -----------------------------------------------------------------------------
 // TRUSTED EXTENSIONS WHITELIST (Tier 1: Trusted)
@@ -904,7 +904,7 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
         });
 
         // FETCH BANNED SITES FROM SERVER (GLOBAL PROTECTION)
-        const API_GLOBAL = 'https://phishingshield.onrender.com/api/reports';
+        const API_GLOBAL = 'https://phishingshield-ruby.vercel.app/api/reports';
         const API_LOCAL = 'http://localhost:3000/api/reports';
         const nowServer = Date.now();
 

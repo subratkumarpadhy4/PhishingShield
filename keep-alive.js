@@ -1,7 +1,7 @@
 // Simple keep-alive script - run this locally while testing
 const https = require('https');
 
-const PING_URL = 'https://phishingshield.onrender.com/api/users';
+const PING_URL = 'https://phishingshield-ruby.vercel.app/api/users';
 const INTERVAL = 10 * 60 * 1000; // Ping every 10 minutes
 
 console.log('🔄 Starting keep-alive service...');

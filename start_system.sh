@@ -15,13 +15,13 @@ fi
 
 # 3. Wake up the Global Server (Cloud)
 echo "🌍 Connecting to Global Cloud Server..."
-status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://phishingshield.onrender.com/api/reports)
+status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://phishingshield-ruby.vercel.app/api/reports)
 
 if [[ "$status_code" -eq 200 ]] ; then
   echo "✅ Global Server is ONLINE and Ready."
 else
   echo "⚠️  Global Server might be sleeping or unreachable (Status: $status_code). Trying to wake it up..."
-  curl -s -o /dev/null https://phishingshield.onrender.com/api/reports
+  curl -s -o /dev/null https://phishingshield-ruby.vercel.app/api/reports
 fi
 
 # 4. Start the Local Server

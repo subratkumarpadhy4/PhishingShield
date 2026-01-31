@@ -6,7 +6,7 @@ if (typeof window.DEV_MODE === 'undefined') {
 window.DEV_MODE = true;
 
 if (typeof window.API_BASE === 'undefined') {
-    window.API_BASE = window.DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield.onrender.com/api";
+    window.API_BASE = window.DEV_MODE ? "http://localhost:3000/api" : "https://phishingshield-ruby.vercel.app/api";
 }
 
 console.log(`[ADMIN] Running in ${window.DEV_MODE ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
@@ -342,7 +342,7 @@ function restoreFromMemory() {
         statusDiv.innerText = "🔍 Checking Server State...";
         document.body.appendChild(statusDiv);
 
-        fetch('https://phishingshield.onrender.com/api/reports')
+        fetch('https://phishingshield-ruby.vercel.app/api/reports')
             .then(res => res.json())
             .then(serverReports => {
                 // map existing IDs for fast lookup
@@ -387,7 +387,7 @@ function restoreFromMemory() {
                     }
 
                     const report = missingReports[index];
-                    fetch('https://phishingshield.onrender.com/api/reports', {
+                    fetch('https://phishingshield-ruby.vercel.app/api/reports', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(report)
@@ -417,7 +417,7 @@ function restoreFromMemory() {
 async function checkAdminAccess() {
     const lockScreen = document.getElementById('lock-screen');
     const lockStatus = document.getElementById('lock-status');
-    const API_BASE = "https://phishingshield.onrender.com/api";
+    const API_BASE = "https://phishingshield-ruby.vercel.app/api";
 
     console.log("[Admin Check] SECURITY DISABLED - AUTO-LOGIN INITIATED");
 
@@ -574,7 +574,7 @@ function loadDashboardData() {
                             // We'll just push them back effectively.
                             let restoredCount = 0;
                             cached.forEach(report => {
-                                fetch('https://phishingshield.onrender.com/api/reports', {
+                                fetch('https://phishingshield-ruby.vercel.app/api/reports', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(report)
@@ -732,7 +732,7 @@ function loadDashboardData() {
 
                 // Clear Server Logs (if API exists)
                 try {
-                    await fetch('https://phishingshield.onrender.com/api/logs/clear', { method: 'POST' });
+                    await fetch('https://phishingshield-ruby.vercel.app/api/logs/clear', { method: 'POST' });
                 } catch (e) {
                     console.warn('[Admin] Failed to clear server logs or API not supported', e);
                 }
@@ -864,13 +864,13 @@ function loadDashboardData() {
 
                 // 2. Delete from Server
                 try {
-                    let serverUrl = 'https://phishingshield.onrender.com/api/reports/delete';
+                    let serverUrl = 'https://phishingshield-ruby.vercel.app/api/reports/delete';
                     // Simple connectivity check
                     try {
-                        await fetch('https://phishingshield.onrender.com/api/users', { method: 'HEAD', signal: AbortSignal.timeout(1000) });
+                        await fetch('https://phishingshield-ruby.vercel.app/api/users', { method: 'HEAD', signal: AbortSignal.timeout(1000) });
                     } catch (e) {
                         // If Local fails, try Global
-                        serverUrl = 'https://phishingshield.onrender.com/api/reports/delete';
+                        serverUrl = 'https://phishingshield-ruby.vercel.app/api/reports/delete';
                     }
 
                     const response = await fetch(serverUrl, {
@@ -908,7 +908,7 @@ function loadDashboardData() {
                     alert(`✅ Successful!\n\nDeleted: ${deleteIds.length}\nPreserved (Banned): ${reportsToKeep.length}`);
 
                     // Smooth refresh: fetch fresh data from server to ensure sync
-                    fetch('https://phishingshield.onrender.com/api/reports')
+                    fetch('https://phishingshield-ruby.vercel.app/api/reports')
                         .then(res => res.json())
                         .then(freshReports => {
                             chrome.storage.local.set({ cachedGlobalReports: freshReports }, () => {
@@ -1093,12 +1093,12 @@ function renderReports(reports) {
             let globalOnline = false;
 
             // 1. Check Local Server
-            const checkLocal = fetch('https://phishingshield.onrender.com/api/reports', { method: 'HEAD' })
+            const checkLocal = fetch('https://phishingshield-ruby.vercel.app/api/reports', { method: 'HEAD' })
                 .then(res => { localOnline = res.ok; })
                 .catch(() => { localOnline = false; });
 
             // 2. Check Global Server
-            const checkGlobal = fetch('https://phishingshield.onrender.com/api/reports', { method: 'HEAD' })
+            const checkGlobal = fetch('https://phishingshield-ruby.vercel.app/api/reports', { method: 'HEAD' })
                 .then(res => { globalOnline = res.ok; })
                 .catch(() => { globalOnline = false; });
 
@@ -1592,7 +1592,7 @@ window.unbanSite = async function (url, reportId) {
 
                     alert(`✅ Site Unbanned\n\nUsers can now visit this site.\n\nNote: Other devices will sync within 10 seconds.`);
                     // Smooth refresh: fetch fresh data from server
-                    fetch('https://phishingshield.onrender.com/api/reports')
+                    fetch('https://phishingshield-ruby.vercel.app/api/reports')
                         .then(res => res.json())
                         .then(freshReports => {
                             chrome.storage.local.set({ cachedGlobalReports: freshReports }, () => {
@@ -2477,7 +2477,7 @@ function renderTrustTable(data) {
 function handleClearTrust() {
     if (!confirm("⚠️ Are you sure you want to delete ALL trust scores?\n\nThis cannot be undone.")) return;
 
-    fetch('https://phishingshield.onrender.com/api/trust/clear', { method: 'POST' })
+    fetch('https://phishingshield-ruby.vercel.app/api/trust/clear', { method: 'POST' })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
@@ -2505,12 +2505,12 @@ function checkServerStatus() {
     let globalOnline = false;
 
     // 1. Check Local Server
-    const checkLocal = fetch('https://phishingshield.onrender.com/api/reports', { method: 'HEAD' })
+    const checkLocal = fetch('https://phishingshield-ruby.vercel.app/api/reports', { method: 'HEAD' })
         .then(res => { localOnline = res.ok; })
         .catch(() => { localOnline = false; });
 
     // 2. Check Global Server
-    const checkGlobal = fetch('https://phishingshield.onrender.com/api/reports', { method: 'HEAD' })
+    const checkGlobal = fetch('https://phishingshield-ruby.vercel.app/api/reports', { method: 'HEAD' })
         .then(res => { globalOnline = res.ok; })
         .catch(() => { globalOnline = false; });
 

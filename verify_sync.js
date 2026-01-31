@@ -1,4 +1,4 @@
-const GLOBAL_URL = 'https://phishingshield.onrender.com';
+const GLOBAL_URL = 'https://phishingshield-ruby.vercel.app';
 
 async function verifyUnban() {
     console.log("1. Fetching Global Reports...");
