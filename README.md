@@ -44,27 +44,35 @@ How Oculus decides if a page is safe or malicious in milliseconds.
 
 ```mermaid
 graph TD
-    Start[Page Loaded] -->|1. Extract Features| DOM[DOM & Content Analysis]
+    %% Styling Definitions
+    classDef input fill:#2a2a2a,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef engine fill:#1F2937,stroke:#3B82F6,stroke-width:2px,color:#ffffff
+    classDef safe fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#ffffff
+    classDef danger fill:#7F1D1D,stroke:#EF4444,stroke-width:2px,color:#ffffff
+    classDef decision fill:#374151,stroke:#F59E0B,stroke-width:2px,color:#ffffff
+
+    Start[Page Loaded]:::input -->|1. Extract Features| DOM[DOM & Content Analysis]:::engine
     
     subgraph "Client-Side Engines (Local)"
-        DOM -->|Visual DNA Match| Chameleon[🦎 Chameleon Engine 4.0]
-        DOM -->|Text Tokens| NaiveBayes[🧠 Client Naive Bayes]
-        DOM -->|Heuristics| RiskEngine[⚙️ Risk Engine]
+        direction TB
+        DOM -->|Visual DNA Match| Chameleon[🦎 Chameleon Engine 4.0]:::engine
+        DOM -->|Text Tokens| NaiveBayes[🧠 Client Naive Bayes]:::engine
+        DOM -->|Heuristics| RiskEngine[⚙️ Risk Engine]:::engine
         
-        RiskEngine -->|Check| Entropy[Entropy Sentinel]
-        RiskEngine -->|Check| Typosquat[Typosquat Detector]
-        RiskEngine -->|Check| Punycode[IDN/Punycode Check]
+        RiskEngine -->|Check| Entropy[Entropy Sentinel]:::decision
+        RiskEngine -->|Check| Typosquat[Typosquat Detector]:::decision
+        RiskEngine -->|Check| Punycode[IDN/Punycode Check]:::decision
     end
     
-    Chameleon -->|Score| Aggregator{Risk Score > 50?}
+    Chameleon -->|Score| Aggregator{Risk Score > 50?}:::decision
     NaiveBayes -->|Score| Aggregator
     RiskEngine -->|Score| Aggregator
     
-    Aggregator -- NO --> Safe[🟢 SAFE / CAUTION]
-    Aggregator -- YES --> CloudCheck{Cloud Verification?}
+    Aggregator -- NO --> Safe[🟢 SAFE / CAUTION]:::safe
+    Aggregator -- YES --> CloudCheck{Cloud Verification?}:::decision
     
-    CloudCheck -->|API Call| CloudAI[☁️ Cloud AI Layer]
-    CloudAI -->|Verdict| Block[🔴 BLOCK & EXPLAIN]
+    CloudCheck -->|API Call| CloudAI[☁️ Cloud AI Layer]:::danger
+    CloudAI -->|Verdict| Block[🔴 BLOCK & EXPLAIN]:::danger
 ```
 </details>
 
@@ -82,6 +90,8 @@ sequenceDiagram
     participant Groq as Groq (Llama-3)
     participant VT as VirusTotal
     participant DB as MongoDB (Trust)
+
+    Note over Client,DB: 🚀 Parallel Cloud Analysis Flow
 
     Client->>API: POST /api/ai/scan (Risk Data)
     
@@ -108,23 +118,30 @@ The feedback loop that rewards users for contributing to security.
 
 ```mermaid
 graph LR
-    UserAction[User Browsing / Reporting] -->|Triggers| XP_Service[XP Service Worker]
+    %% Styling Definitions
+    classDef action fill:#2563EB,stroke:#EFF6FF,stroke-width:2px,color:#ffffff
+    classDef logic fill:#4B5563,stroke:#9CA3AF,stroke-width:2px,color:#ffffff
+    classDef unlock fill:#7C3AED,stroke:#C4B5FD,stroke-width:2px,color:#ffffff
+    classDef notify fill:#059669,stroke:#34D399,stroke-width:2px,color:#ffffff
+
+    UserAction[User Browsing / Reporting]:::action -->|Triggers| XP_Service[XP Service Worker]:::logic
     
     subgraph "Progression Logic"
-        XP_Service -->|Add XP| LocalStore[(Local Storage)]
-        XP_Service -->|Sync| Server[Global Leaderboard]
-        LocalStore -->|formula: sqrt XP/100| LevelCalc[Level Calculator]
+        XP_Service -->|Add XP| LocalStore[(Local Storage)]:::logic
+        XP_Service -->|Sync| Server[Global Leaderboard]:::logic
+        LocalStore -->|formula: sqrt XP/100| LevelCalc[Level Calculator]:::logic
     end
     
-    LevelCalc -->|Level Up!| UnlockSystem{Feature Unlocks}
+    LevelCalc -->|Level Up!| UnlockSystem{Feature Unlocks}:::unlock
     
-    UnlockSystem -->|Lvl 5| QR[📸 QR Scanner Unlocked]
-    UnlockSystem -->|Lvl 10| ML[🧠 ML Heuristics Unlocked]
-    UnlockSystem -->|Lvl 20| Cham[🦎 Chameleon Mode Unlocked]
+    UnlockSystem -->|Lvl 5| QR[📸 QR Scanner Unlocked]:::unlock
+    UnlockSystem -->|Lvl 10| ML[🧠 ML Heuristics Unlocked]:::unlock
+    UnlockSystem -->|Lvl 20| Cham[🦎 Chameleon Mode Unlocked]:::unlock
     
-    UnlockSystem -->|Notification| Notify[User Alert: New Level!]
+    UnlockSystem -->|Notification| Notify[User Alert: New Level!]:::notify
 ```
 </details>
+
 
 ---
 
