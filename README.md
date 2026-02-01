@@ -20,7 +20,7 @@
 
 Traditional antiviruses are **Reactive** (waiting for blacklists). Oculus is **Proactive** and **Educational**.
 
-| Feature | 🚫 Traditional Antivirus | 🛡️ Oculus 2.0 |
+| Feature | 🚫 Traditional Antivirus | 🛡️ Oculus |
 | :--- | :--- | :--- |
 | **Detection logic** | Static Blacklists (Slow) | **Real-Time Visual DNA & AI** (Instant) |
 | **Zero-Day Defense** | Fails on new sites | **Detects threat patterns** automatically |
