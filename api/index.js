@@ -55,7 +55,7 @@ const transporter = nodemailer.createTransport({
 
 // Root endpoint
 app.get("/api", (req, res) => {
-    res.json({ status: "ok", message: "PhishingShield API Running on Vercel" });
+    res.json({ status: "ok", message: "Oculus Security API Running on Vercel" });
 });
 
 // Health check
