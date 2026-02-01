@@ -261,9 +261,16 @@ Load the "Brain" of Oculus into your browser.
 4.  Select the **Oculus** project folder (The root folder containing `manifest.json`).
 5.  ✅ **Done!** The Oculus shield icon should appear in your toolbar.
 
-> **⚠️ NOTE: Localhost vs Production**
-> By default, the extension is configured to talk to `http://localhost:3000`.
-> If you deploy the API to Vercel/Render, you must search & replace `http://localhost:3000` with your new URL in `js/background.js`, `js/auth.js`, and `js/dashboard.js`.
+### 🔐 Admin Portal Access
+To access the global ban system and review reported sites:
+1.  Click the extension icon -> "Dashboard" -> "Admin Portal" (Sidebar).
+2.  **Login Credentials**:
+    *   **Email**: `rajkumarpadhy2006@gmail.com`
+    *   **Password**: `rajkumar123` (Change immediately upon login)
+
+> **✅ NOTE: Production Ready**
+> The extension is pre-configured to communicate with our minimal-latency Vercel API: `https://oculus-eight.vercel.app`.
+> No local server is required for the extension to work out of the box!
 
 ### 🔧 Troubleshooting
 
@@ -287,6 +294,11 @@ Load the "Brain" of Oculus into your browser.
 1.  Open `tests/fake_instagram.html` (or create a file with Instagram colors and "Log in").
 2.  **Observation**: Chameleon detects "Instagram Visual DNA" on a non-meta domain.
 3.  **Result**: "🦎 DNA MISMATCH! Page is Instagram clone".
+4. 
+### Scenario C: Quishing (QR Phishing)
+1.  Open `tests/qr_safe.html` -> Scan shows "Safe" (Green Overlay).
+2.  Open `tests/qr_danger.html` -> Scan shows "Malicious" (Red Overlay).
+    *   *Note: qr_danger.html simulates a typosquatted domain.*
 
 ---
 
