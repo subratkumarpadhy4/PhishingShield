@@ -1,4 +1,6 @@
 {
+  "name": "oculus",
+  "version": "1.1.0",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.4",
