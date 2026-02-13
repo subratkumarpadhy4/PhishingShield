@@ -18,28 +18,47 @@
 
     console.log("%c[Digital DNA] 🧬 Shadow Profile Activated (Injected by Bootloader)", "color: #00ff00; background: #000; font-size: 12px; padding: 4px;");
 
-    // 🛠️ HELPER: Property Override
+    // 🛠️ HELPER: Property Override (Robust)
     function overrideProperty(object, property, value) {
-        Object.defineProperty(object, property, {
-            get: () => value,
-            configurable: true // Allow re-definition to prevent errors if site tries to set it
-        });
+        try {
+            // Try defining on the object instance first
+            Object.defineProperty(object, property, {
+                get: () => value,
+                configurable: true
+            });
+        } catch (e) {
+            // Fallback: Try defining on the prototype
+            try {
+                const proto = Object.getPrototypeOf(object);
+                Object.defineProperty(proto, property, {
+                    get: () => value,
+                    configurable: true
+                });
+            } catch (e2) {
+                console.warn(`[Digital DNA] Failed to override ${property}`, e2);
+            }
+        }
     }
 
     try {
         // 1. Spoof Navigator (User Agent, Platform, etc.)
-        overrideProperty(navigator, 'userAgent', SHADOW_PROFILE.userAgent);
-        overrideProperty(navigator, 'appVersion', SHADOW_PROFILE.appVersion);
-        overrideProperty(navigator, 'platform', SHADOW_PROFILE.platform);
-        overrideProperty(navigator, 'vendor', SHADOW_PROFILE.vendor);
-        overrideProperty(navigator, 'hardwareConcurrency', SHADOW_PROFILE.hardwareConcurrency);
-        overrideProperty(navigator, 'deviceMemory', SHADOW_PROFILE.deviceMemory);
+        // We override both the instance and potentially the prototype to be sure
+        const nav = window.navigator;
+
+        overrideProperty(nav, 'userAgent', SHADOW_PROFILE.userAgent);
+        overrideProperty(nav, 'appVersion', SHADOW_PROFILE.appVersion);
+        overrideProperty(nav, 'platform', SHADOW_PROFILE.platform);
+        overrideProperty(nav, 'vendor', SHADOW_PROFILE.vendor);
+        overrideProperty(nav, 'hardwareConcurrency', SHADOW_PROFILE.hardwareConcurrency);
+        overrideProperty(nav, 'deviceMemory', SHADOW_PROFILE.deviceMemory);
 
         // 2. Spoof Screen Resolution (1920x1080)
-        overrideProperty(window.screen, 'width', SHADOW_PROFILE.screenWidth);
-        overrideProperty(window.screen, 'height', SHADOW_PROFILE.screenHeight);
-        overrideProperty(window.screen, 'availWidth', SHADOW_PROFILE.screenWidth);
-        overrideProperty(window.screen, 'availHeight', SHADOW_PROFILE.screenHeight - 40); // Minus taskbar
+        // Screen properties are often read-only, so we target the prototype if needed
+        const screen = window.screen;
+        overrideProperty(screen, 'width', SHADOW_PROFILE.screenWidth);
+        overrideProperty(screen, 'height', SHADOW_PROFILE.screenHeight);
+        overrideProperty(screen, 'availWidth', SHADOW_PROFILE.screenWidth);
+        overrideProperty(screen, 'availHeight', SHADOW_PROFILE.screenHeight - 40); // Minus taskbar
 
         console.log(`[Digital DNA] User Agent Spoofed: ${navigator.userAgent}`);
         console.log(`[Digital DNA] Platform Spoofed: ${navigator.platform}`);
@@ -50,7 +69,7 @@
         HTMLCanvasElement.prototype.toDataURL = function (type) {
             // Only apply noise if context exists and has data
             // (Simplified for stability - pure noisification would modify pixel data via getContext)
-            console.log("[Digital DNA] Canvas Read Attempt Detected & Obfuscated");
+            // console.log("[Digital DNA] Canvas Read Attempt Detected & Obfuscated");
             // In a full implementation, we would modify the pixel buffer slightly here.
             return originalToDataURL.apply(this, arguments);
         };

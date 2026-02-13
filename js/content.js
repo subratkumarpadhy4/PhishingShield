@@ -22,6 +22,17 @@ chrome.storage.local.get(['enablePreview', 'enableLogin', 'enableDownloads', 'en
     initDownloadProtection(enableFortress, enableDownloads);
     initFortressClipboard(enableFortress);
 
+    // 🧬 Digital DNA: Content Script Injection Fallback
+    // Background script registers it generally, but this ensures it hits for existing pages/reloads
+    chrome.storage.local.get(['digital_dna_mode'], (res) => {
+        if (res.digital_dna_mode === 'always') {
+            const script = document.createElement('script');
+            script.src = chrome.runtime.getURL('js/digital_dna.js');
+            (document.head || document.documentElement).appendChild(script);
+            script.onload = () => script.remove();
+        }
+    });
+
     // Initial Sync for Fresh XP
     chrome.runtime.sendMessage({ type: "SYNC_XP" });
 });
