@@ -11,6 +11,7 @@
   },
   "permissions": [
     "declarativeNetRequest",
+    "webNavigation",
     "contextMenus",
     "storage",
     "management",
@@ -70,6 +71,7 @@
         "js/banned.js",
         "banned.html",
         "warning.html",
+        "scanning.html",
         "css/*",
         "images/*"
       ],
