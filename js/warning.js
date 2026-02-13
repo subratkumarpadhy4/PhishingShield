@@ -1,9 +1,55 @@
 const urlParams = new URLSearchParams(window.location.search);
 const targetUrl = urlParams.get('url');
 const reason = urlParams.get('reason');
+const blockedDomain = urlParams.get('domain');
 
-// Check if this is a banned site
-if (reason === 'COMMUNITY_BAN') {
+// Check if this is an IP Logger
+if (reason === 'iplogger') {
+    const container = document.getElementById('warning-container');
+    container.innerHTML = `
+        <div class="icon" style="font-size: 5rem;">🕵️</div>
+        <h1 style="color: #dc3545; font-size: 2rem;">IP Logger Detected & Blocked!</h1>
+        <p style="font-size: 1.2rem; font-weight: bold; color: #ff6b6b;">
+            This link is an <strong>IP Tracking Trap</strong>. It was designed to steal your IP address and location.
+        </p>
+        <p style="font-size: 1rem; color: #6c757d; line-height: 1.8;">
+            <strong>How it works:</strong> The attacker creates a tracking link on <code style="background:#2a2a3a;padding:2px 6px;border-radius:4px;color:#ff6b6b;">${blockedDomain || 'an IP logger service'}</code>, 
+            sends it to you disguised as a normal link, and when you click it — your IP, location, browser, 
+            and device info are logged before redirecting you to a legitimate site (like YouTube) so you never suspect anything.
+        </p>
+        <p style="font-size: 1rem; color: #10b981; font-weight: 600;">
+            ✅ Oculus blocked the connection — your IP was NOT exposed.
+        </p>
+        ${blockedDomain ? `<p style="font-size: 0.9rem; color: #6c757d; font-family: monospace; word-break: break-all; background: #1a1a2e; padding: 10px; border-radius: 8px; border: 1px solid #333;">🚫 Blocked domain: ${blockedDomain}</p>` : ''}
+        <div class="actions">
+            <button id="go-back" style="background-color: #dc3545; font-size: 1.1rem; padding: 12px 24px;">Go Back to Safety</button>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.85rem; color: #6c757d;">
+            Known IP logger services are permanently blocked by Oculus. No data was sent to the tracking server.
+        </p>
+    `;
+
+    // Hide the "Proceed Anyway" button — never allow IP loggers
+    const proceedBtn = document.getElementById('proceed-unsafe');
+    if (proceedBtn) proceedBtn.style.display = 'none';
+
+    document.getElementById('go-back').addEventListener('click', () => {
+        history.back();
+    });
+
+    // Log the attempt
+    chrome.runtime.sendMessage({
+        type: "LOG_VISIT",
+        data: {
+            url: blockedDomain || 'ip-logger',
+            hostname: blockedDomain || 'ip-logger',
+            score: 999,
+            reason: 'IP_LOGGER_BLOCKED',
+            timestamp: Date.now()
+        }
+    });
+
+} else if (reason === 'COMMUNITY_BAN') {
     // Show banned site message
     const container = document.getElementById('warning-container');
     container.innerHTML = `
