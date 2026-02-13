@@ -140,11 +140,13 @@ const Auth = {
     },
 
     _syncUserToBackend: function (user) {
+        // SECURITY: Never send password during sync — only send profile data
+        const { password, ...safeUser } = user;
         fetch(`${API_BASE}/users/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(user)
-        }).then(r => console.log("User Created on Node Backend")).catch(e => console.error(e));
+            body: JSON.stringify(safeUser)
+        }).then(r => console.log("User Synced to Backend (no password sent)")).catch(e => console.error(e));
     },
 
     /**
