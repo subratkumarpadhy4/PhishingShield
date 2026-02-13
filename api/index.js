@@ -1186,6 +1186,32 @@ app.get("/api/leaderboard", async (req, res) => {
     }
 });
 
+// SECURITY: One-time migration to hash all plain text passwords
+app.post("/api/admin/hash-passwords", async (req, res) => {
+    try {
+        await db.connectDB();
+        const users = await db.User.find({});
+        let fixed = 0;
+
+        for (const user of users) {
+            // Skip users with no password or already hashed passwords
+            if (!user.password || user.password.startsWith('$2b$')) continue;
+
+            // This password is plain text — hash it!
+            console.log(`[SECURITY] Hashing plain text password for: ${user.email}`);
+            user.password = await bcrypt.hash(user.password, 10);
+            await user.save();
+            fixed++;
+        }
+
+        console.log(`[SECURITY] ✅ Fixed ${fixed} plain text passwords`);
+        res.json({ success: true, message: `Hashed ${fixed} plain text passwords`, fixed });
+    } catch (error) {
+        console.error('[SECURITY] Hash migration error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Export for Vercel
 module.exports = app;
 
