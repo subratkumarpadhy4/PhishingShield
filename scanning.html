@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oculus — Scanning URL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+        }
+
+        .shield {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .url-display {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #ff6b6b;
+            word-break: break-all;
+            max-height: 60px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 4px;
+            animation: scan 2s ease-in-out forwards;
+        }
+
+        @keyframes scan {
+            0% {
+                width: 0%;
+            }
+
+            30% {
+                width: 40%;
+            }
+
+            60% {
+                width: 70%;
+            }
+
+            90% {
+                width: 90%;
+            }
+
+            100% {
+                width: 100%;
+            }
+        }
+
+        .status {
+            font-size: 1rem;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .checks {
+            text-align: left;
+            margin: 20px auto;
+            max-width: 350px;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 0.9rem;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .check-item.done {
+            color: #00ff88;
+        }
+
+        .check-item.fail {
+            color: #ff6b6b;
+        }
+
+        .check-item .icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Result states */
+        .result-safe {
+            display: none;
+        }
+
+        .result-danger {
+            display: none;
+        }
+
+        .result-safe.show,
+        .result-danger.show {
+            display: block;
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .result-safe.show {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+        }
+
+        .result-danger.show {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 8px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-safe {
+            background: #00ff88;
+            color: #0a0a1a;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-back {
+            background: #333;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="shield">🛡️</div>
+        <h1>Scanning URL...</h1>
+        <div class="url-display" id="url-display">Loading...</div>
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+
+        <div class="checks" id="checks">
+            <div class="check-item" id="check-tld">
+                <span class="icon">⏳</span> Checking domain reputation
+            </div>
+            <div class="check-item" id="check-typo">
+                <span class="icon">⏳</span> Typosquatting detection
+            </div>
+            <div class="check-item" id="check-pattern">
+                <span class="icon">⏳</span> URL pattern analysis
+            </div>
+            <div class="check-item" id="check-keywords">
+                <span class="icon">⏳</span> Phishing keyword scan
+            </div>
+            <div class="check-item" id="check-structure">
+                <span class="icon">⏳</span> Structure analysis
+            </div>
+        </div>
+
+        <div class="status" id="status">Analyzing URL security...</div>
+
+        <div class="result-safe" id="result-safe">
+            <p style="font-size: 1.1rem; font-weight: bold;">✅ URL appears safe</p>
+            <p style="margin-top: 8px; font-size: 0.9rem; color: #888;">Redirecting automatically...</p>
+        </div>
+
+        <div class="result-danger" id="result-danger">
+            <p style="font-size: 1.1rem; font-weight: bold;">⚠️ Suspicious URL Detected!</p>
+            <p style="margin-top: 8px; font-size: 0.9rem;" id="danger-reasons"></p>
+            <div style="margin-top: 16px;">
+                <button class="btn btn-back" id="btn-back">← Go Back</button>
+                <button class="btn btn-danger" id="btn-proceed">Proceed Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/scanning.js"></script>
+</body>
+
+</html>
