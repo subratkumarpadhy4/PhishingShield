@@ -11,6 +11,14 @@ const API_BASE = DEV_MODE ? "http://localhost:3000/api" : "https://oculus-eight.
 const LOCAL_API = "http://localhost:3000/api/reports";
 const GLOBAL_API = "https://oculus-eight.vercel.app/api/reports";
 
+// Purge old cached IP Logger rules (they persist in Chrome even after code removal)
+const purgeIds = [];
+for (let i = 1100; i < 1200; i++) purgeIds.push(i);
+chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: purgeIds })
+    .then(() => console.log("[Oculus] 🧹 Old IP Logger rules purged"))
+    .catch(() => { });
+
+
 // -----------------------------------------------------------------------------
 // TRUSTED EXTENSIONS WHITELIST (Tier 1: Trusted)
 // -----------------------------------------------------------------------------
@@ -700,7 +708,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
             // 3. NETWORK SPOOFING: Rewrite User-Agent Header (Perfect Deception)
             chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: [RULE_ID], // clear old if exists
+                removeRuleIds: [RULE_ID],
                 addRules: [{
                     "id": RULE_ID,
                     "priority": 1,
@@ -718,7 +726,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     }
                 }]
             }).then(() => {
-                console.log("[Oculus] 🎭 Network Headers Spoofed (User-Agent -> Windows)");
+                console.log("[Oculus] 🎭 Network Headers Spoofed (User-Agent → Windows)");
             });
 
             sendResponse({ success: true });
@@ -934,12 +942,14 @@ try {
 chrome.runtime.onInstalled.addListener((details) => {
     console.log("[Oculus] Extension installed/updated:", details.reason);
     createContextMenu();
+
 });
 
 // Also create on browser startup
 chrome.runtime.onStartup.addListener(() => {
     console.log("[Oculus] Browser startup");
     createContextMenu();
+
 });
 
 // Initialize XP system on startup
@@ -1637,3 +1647,299 @@ if (chrome.downloads && chrome.downloads.onCreated) {
 } else {
     console.warn("[Oculus] chrome.downloads API not available.");
 }
+
+// =============================================================================
+// PRE-NAVIGATION URL SCANNER — Checks EVERY URL before browser connects
+// =============================================================================
+
+// Trusted domains that should NEVER be scanned (performance optimization)
+const TRUSTED_DOMAINS = new Set([
+    'google.com', 'www.google.com', 'google.co.in', 'www.google.co.in',
+    'youtube.com', 'www.youtube.com', 'm.youtube.com',
+    'facebook.com', 'www.facebook.com',
+    'twitter.com', 'x.com', 'www.x.com',
+    'instagram.com', 'www.instagram.com',
+    'linkedin.com', 'www.linkedin.com',
+    'github.com', 'www.github.com',
+    'stackoverflow.com', 'www.stackoverflow.com',
+    'reddit.com', 'www.reddit.com', 'old.reddit.com',
+    'amazon.com', 'www.amazon.com', 'amazon.in', 'www.amazon.in',
+    'wikipedia.org', 'en.wikipedia.org',
+    'microsoft.com', 'www.microsoft.com',
+    'apple.com', 'www.apple.com',
+    'netflix.com', 'www.netflix.com',
+    'whatsapp.com', 'web.whatsapp.com',
+    'zoom.us', 'us02web.zoom.us',
+    'discord.com', 'www.discord.com',
+    'spotify.com', 'open.spotify.com',
+    'gmail.com', 'mail.google.com',
+    'outlook.com', 'outlook.live.com',
+    'yahoo.com', 'mail.yahoo.com',
+    'drive.google.com', 'docs.google.com',
+    'maps.google.com', 'translate.google.com',
+    'accounts.google.com',
+    'chrome.google.com',
+    'mozilla.org', 'www.mozilla.org',
+    'vercel.app', 'oculus-eight.vercel.app',
+    'localhost', '127.0.0.1',
+    'cloud.mongodb.com',
+    'chatgpt.com', 'chat.openai.com',
+    'notion.so', 'www.notion.so',
+    'figma.com', 'www.figma.com',
+    'canva.com', 'www.canva.com',
+]);
+
+// Suspicious TLDs often used for phishing
+const SUSPICIOUS_TLDS = new Set([
+    '.xyz', '.tk', '.ml', '.ga', '.cf', '.gq', '.top', '.buzz',
+    '.icu', '.click', '.work', '.rest', '.fit', '.cam', '.monster',
+    '.surf', '.uno', '.sbs', '.cfd', '.quest', '.beauty', '.hair',
+    '.makeup', '.boats', '.stream', '.download', '.racing',
+    '.review', '.accountant', '.science', '.date', '.faith',
+    '.win', '.bid', '.trade', '.party', '.cricket', '.loan'
+]);
+
+// Known brands for typosquatting detection
+const BRAND_DOMAINS = {
+    'google': 'google.com', 'facebook': 'facebook.com', 'amazon': 'amazon.com',
+    'apple': 'apple.com', 'microsoft': 'microsoft.com', 'netflix': 'netflix.com',
+    'paypal': 'paypal.com', 'instagram': 'instagram.com', 'twitter': 'twitter.com',
+    'linkedin': 'linkedin.com', 'youtube': 'youtube.com', 'whatsapp': 'whatsapp.com',
+    'github': 'github.com', 'spotify': 'spotify.com', 'dropbox': 'dropbox.com',
+    'yahoo': 'yahoo.com', 'outlook': 'outlook.com', 'steam': 'steampowered.com',
+    'discord': 'discord.com', 'reddit': 'reddit.com', 'twitch': 'twitch.tv',
+    'bankofamerica': 'bankofamerica.com', 'chase': 'chase.com', 'wellsfargo': 'wellsfargo.com',
+    'hdfc': 'hdfcbank.com', 'icici': 'icicibank.com', 'sbi': 'sbi.co.in',
+};
+
+// Phishing keywords commonly found in malicious URLs
+const PHISHING_KEYWORDS = [
+    'login', 'signin', 'sign-in', 'verify', 'verification', 'secure',
+    'account', 'update', 'confirm', 'banking', 'wallet', 'suspend',
+    'unlock', 'restore', 'password', 'credential', 'authenticate',
+    'urgent', 'alert', 'warning', 'expire', 'limited', 'free-gift',
+    'winner', 'prize', 'reward', 'claim', 'bonus'
+];
+
+// URL shorteners (flag, inspect closer)
+const URL_SHORTENERS = new Set([
+    'bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'is.gd',
+    'buff.ly', 'rebrand.ly', 'cutt.ly', 'shorturl.at', 'rb.gy',
+    'v.gd', 'tr.im', 'tiny.cc', 'shorturl.at'
+]);
+
+// Temporary bypass list (URLs the user chose to proceed to)
+const scanBypassUrls = new Set();
+
+/**
+ * Core URL Heuristic Scanner
+ * Returns { score: 0-100, reasons: string[] }
+ */
+function analyzeUrlHeuristics(urlString) {
+    let score = 0;
+    const reasons = [];
+
+    try {
+        const url = new URL(urlString);
+        const hostname = url.hostname.toLowerCase();
+        const fullPath = url.pathname.toLowerCase();
+        const domain = hostname.replace(/^www\./, '');
+
+        // Skip trusted domains
+        if (TRUSTED_DOMAINS.has(hostname) || TRUSTED_DOMAINS.has(domain)) {
+            return { score: 0, reasons: [] };
+        }
+
+        // Skip extension pages
+        if (urlString.startsWith('chrome-extension://') || urlString.startsWith('chrome://') ||
+            urlString.startsWith('about:') || urlString.startsWith('edge://')) {
+            return { score: 0, reasons: [] };
+        }
+
+        // 1. SUSPICIOUS TLD CHECK
+        const tld = '.' + domain.split('.').pop();
+        if (SUSPICIOUS_TLDS.has(tld)) {
+            score += 25;
+            reasons.push(`Suspicious TLD "${tld}" — commonly used for phishing`);
+        }
+
+        // 2. TYPOSQUATTING DETECTION
+        const domainBase = domain.split('.')[0]; // e.g. "g00gle" from "g00gle.com"
+        for (const [brand, officialDomain] of Object.entries(BRAND_DOMAINS)) {
+            if (domain === officialDomain || hostname.endsWith('.' + officialDomain)) continue;
+
+            // Check if domain contains brand name but isn't the real site
+            if (domainBase.includes(brand) && domain !== officialDomain) {
+                score += 35;
+                reasons.push(`Possible typosquatting — contains "${brand}" but domain is "${domain}", not "${officialDomain}"`);
+                break;
+            }
+
+            // Levenshtein-like check: very similar to brand
+            if (domainBase.length >= 4 && levenshtein(domainBase, brand) <= 2 && domainBase !== brand) {
+                score += 30;
+                reasons.push(`Domain "${domainBase}" is suspiciously similar to "${brand}" (typosquatting)`);
+                break;
+            }
+        }
+
+        // 3. PHISHING KEYWORDS IN PATH
+        let keywordCount = 0;
+        for (const keyword of PHISHING_KEYWORDS) {
+            if (fullPath.includes(keyword) || hostname.includes(keyword)) {
+                keywordCount++;
+            }
+        }
+        if (keywordCount >= 2) {
+            score += 20;
+            reasons.push(`Multiple phishing keywords found in URL (${keywordCount} matches)`);
+        } else if (keywordCount === 1 && score > 0) {
+            score += 10;
+            reasons.push(`Phishing keyword detected in URL`);
+        }
+
+        // 4. EXCESSIVE HYPHENS IN DOMAIN (common in phish: pay-pal-secure-login.com)
+        const hyphenCount = (domain.match(/-/g) || []).length;
+        if (hyphenCount >= 3) {
+            score += 20;
+            reasons.push(`Excessive hyphens in domain (${hyphenCount}) — common phishing pattern`);
+        }
+
+        // 5. IP ADDRESS AS HOSTNAME
+        if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+            score += 30;
+            reasons.push(`IP address used as hostname — legitimate sites use domain names`);
+        }
+
+        // 6. VERY LONG SUBDOMAIN (e.g. secure-login-paypal-verify.evil.com)
+        const subdomainParts = hostname.split('.');
+        if (subdomainParts.length > 3) {
+            score += 15;
+            reasons.push(`Excessive subdomains (${subdomainParts.length} levels) — suspicious structure`);
+        }
+
+        // 7. RANDOM-LOOKING DOMAIN (high entropy)
+        if (domainBase.length > 8 && hasHighEntropy(domainBase)) {
+            score += 15;
+            reasons.push(`Domain appears randomly generated — suspicious pattern`);
+        }
+
+        // 8. URL SHORTENER (not scored but flagged for awareness)
+        if (URL_SHORTENERS.has(domain)) {
+            score += 10;
+            reasons.push(`URL shortener detected — destination unknown`);
+        }
+
+        // 9. @ SYMBOL IN URL (redirect trick: https://google.com@evil.com)
+        if (url.username || urlString.includes('@')) {
+            score += 30;
+            reasons.push(`@ symbol in URL — potential redirect trick to hide real destination`);
+        }
+
+        // 10. VERY LONG URL (often used to hide suspicious parts)
+        if (urlString.length > 200) {
+            score += 10;
+            reasons.push(`Unusually long URL (${urlString.length} chars) — may hide malicious content`);
+        }
+
+        // Cap at 100
+        score = Math.min(score, 100);
+
+    } catch (e) {
+        // Invalid URL
+        return { score: 0, reasons: [] };
+    }
+
+    return { score, reasons };
+}
+
+// Levenshtein distance (for typosquatting detection)
+function levenshtein(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+// Entropy check (random-looking strings)
+function hasHighEntropy(str) {
+    const freq = {};
+    for (const c of str) freq[c] = (freq[c] || 0) + 1;
+    let entropy = 0;
+    const len = str.length;
+    for (const count of Object.values(freq)) {
+        const p = count / len;
+        entropy -= p * Math.log2(p);
+    }
+    return entropy > 3.5; // High entropy = random-looking
+}
+
+// Track pre-scan state (default disabled)
+let preScanEnabled = false;
+chrome.storage.local.get(['enablePreScan'], (r) => {
+    preScanEnabled = r.enablePreScan === true;
+});
+
+// Listen for ALL navigations
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+    // Only check top-level navigations (not iframes, images, etc.)
+    if (details.frameId !== 0) return;
+
+    // Check if pre-scan is enabled
+    if (!preScanEnabled) return;
+
+    const url = details.url;
+
+    // Skip internal/extension URLs
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return;
+
+    // Skip if user already bypassed this URL
+    if (scanBypassUrls.has(url)) {
+        scanBypassUrls.delete(url); // One-time bypass
+        console.log(`[Oculus] 🔓 Bypass: ${url}`);
+        return;
+    }
+
+    // Run heuristic analysis
+    const { score, reasons } = analyzeUrlHeuristics(url);
+
+    if (score >= 50) {
+        console.log(`[Oculus] 🚨 Pre-Navigation Block! Score: ${score}/100 → ${url}`);
+        console.log(`[Oculus] Reasons:`, reasons);
+
+        // Redirect to scanning page with results
+        const scanUrl = chrome.runtime.getURL('scanning.html') +
+            '?url=' + encodeURIComponent(url) +
+            '&score=' + score +
+            '&reasons=' + encodeURIComponent(JSON.stringify(reasons));
+
+        chrome.tabs.update(details.tabId, { url: scanUrl });
+    } else if (score > 0) {
+        console.log(`[Oculus] ⚠️ Low risk (${score}/100): ${url} — allowing through`);
+    }
+});
+
+// Handle bypass and toggle messages
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'URL_SCAN_BYPASS' && message.url) {
+        scanBypassUrls.add(message.url);
+        console.log(`[Oculus] 🔓 URL bypass registered: ${message.url}`);
+        sendResponse({ success: true });
+    }
+    if (message.type === 'TOGGLE_PRESCAN') {
+        preScanEnabled = message.enabled;
+        console.log(`[Oculus] 🔍 URL Pre-Scan: ${preScanEnabled ? 'ENABLED' : 'DISABLED'}`);
+    }
+});
+
+console.log("[Oculus] 🛡️ Pre-Navigation URL Scanner Active — analyzing ALL URLs before connection");
