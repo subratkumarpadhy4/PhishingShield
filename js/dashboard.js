@@ -1390,3 +1390,379 @@ function renderLeaderboard(users) {
 
     container.innerHTML = html;
 }
+
+// ============================================
+// VISUAL DNA TAB - Complete Implementation
+// ============================================
+
+/**
+ * Brand database (mirrored from chameleon.js for dashboard rendering).
+ * Since chameleon.js is a content script, the dashboard page
+ * needs its own reference to render the signature database UI.
+ */
+const VDNA_BRAND_DB = {
+    "Tech Giants": {
+        google: { color: '#4285f4', domains: ['google.com'] },
+        microsoft: { color: '#00a4ef', domains: ['microsoft.com', 'outlook.com'] },
+        apple: { color: '#555555', domains: ['apple.com', 'icloud.com'] },
+        amazon: { color: '#ff9900', domains: ['amazon.com'] },
+        meta: { color: '#1877f2', domains: ['facebook.com', 'instagram.com'] },
+        netflix: { color: '#e50914', domains: ['netflix.com'] }
+    },
+    "Social Media": {
+        twitter: { color: '#1d9bf0', domains: ['x.com', 'twitter.com'] },
+        linkedin: { color: '#0a66c2', domains: ['linkedin.com'] },
+        instagram: { color: '#e1306c', domains: ['instagram.com'] },
+        tiktok: { color: '#fe2c55', domains: ['tiktok.com'] },
+        pinterest: { color: '#bd081c', domains: ['pinterest.com'] },
+        reddit: { color: '#ff4500', domains: ['reddit.com'] },
+        discord: { color: '#5865f2', domains: ['discord.com'] },
+        snapchat: { color: '#fffc00', domains: ['snapchat.com'] },
+        telegram: { color: '#0088cc', domains: ['telegram.org'] },
+        whatsapp: { color: '#25d366', domains: ['whatsapp.com'] },
+        twitch: { color: '#9146ff', domains: ['twitch.tv'] }
+    },
+    "Finance & Banking": {
+        paypal: { color: '#003087', domains: ['paypal.com'] },
+        chase: { color: '#117aca', domains: ['chase.com'] },
+        "bank of america": { color: '#e31837', domains: ['bankofamerica.com'] },
+        "wells fargo": { color: '#d71e28', domains: ['wellsfargo.com'] },
+        citi: { color: '#003b70', domains: ['citi.com'] },
+        "capital one": { color: '#004977', domains: ['capitalone.com'] },
+        amex: { color: '#006fcf', domains: ['americanexpress.com'] },
+        hsbc: { color: '#db0011', domains: ['hsbc.com'] },
+        barclays: { color: '#00aeef', domains: ['barclays.co.uk'] },
+        stripe: { color: '#635bff', domains: ['stripe.com'] },
+        wise: { color: '#9ce657', domains: ['wise.com'] },
+        revolut: { color: '#0075eb', domains: ['revolut.com'] }
+    },
+    "Crypto & Wallets": {
+        coinbase: { color: '#0052ff', domains: ['coinbase.com'] },
+        binance: { color: '#f0b90b', domains: ['binance.com'] },
+        kraken: { color: '#5841d8', domains: ['kraken.com'] },
+        metamask: { color: '#f6851b', domains: ['metamask.io'] },
+        phantom: { color: '#ab9ff2', domains: ['phantom.app'] },
+        ledger: { color: '#333333', domains: ['ledger.com'] },
+        trezor: { color: '#00854d', domains: ['trezor.io'] },
+        "crypto.com": { color: '#002d74', domains: ['crypto.com'] }
+    },
+    "E-Commerce": {
+        ebay: { color: '#e53238', domains: ['ebay.com'] },
+        walmart: { color: '#0071dc', domains: ['walmart.com'] },
+        shopify: { color: '#95bf47', domains: ['shopify.com'] },
+        etsy: { color: '#f16521', domains: ['etsy.com'] },
+        alibaba: { color: '#ff6a00', domains: ['alibaba.com'] },
+        nike: { color: '#111111', domains: ['nike.com'] },
+        ikea: { color: '#0051ba', domains: ['ikea.com'] },
+        temu: { color: '#fb7701', domains: ['temu.com'] }
+    },
+    "Logistics": {
+        fedex: { color: '#4d148c', domains: ['fedex.com'] },
+        ups: { color: '#351c15', domains: ['ups.com'] },
+        dhl: { color: '#d40511', domains: ['dhl.com'] },
+        usps: { color: '#333366', domains: ['usps.com'] }
+    },
+    "Productivity": {
+        dropbox: { color: '#0061fe', domains: ['dropbox.com'] },
+        adobe: { color: '#fa0f00', domains: ['adobe.com'] },
+        zoom: { color: '#2d8cff', domains: ['zoom.us'] },
+        slack: { color: '#4a154b', domains: ['slack.com'] },
+        github: { color: '#333333', domains: ['github.com'] },
+        salesforce: { color: '#00a1e0', domains: ['salesforce.com'] },
+        aws: { color: '#232f3e', domains: ['aws.amazon.com'] }
+    },
+    "Entertainment": {
+        steam: { color: '#171a21', domains: ['steampowered.com'] },
+        spotify: { color: '#1db954', domains: ['spotify.com'] },
+        "disney+": { color: '#113ccf', domains: ['disneyplus.com'] },
+        youtube: { color: '#ff0000', domains: ['youtube.com'] },
+        roblox: { color: '#222222', domains: ['roblox.com'] },
+        "epic games": { color: '#303030', domains: ['epicgames.com'] },
+        playstation: { color: '#003791', domains: ['playstation.com'] },
+        xbox: { color: '#107c10', domains: ['xbox.com'] }
+    },
+    "Travel": {
+        airbnb: { color: '#ff5a5f', domains: ['airbnb.com'] },
+        "booking.com": { color: '#003580', domains: ['booking.com'] },
+        uber: { color: '#111111', domains: ['uber.com'] },
+        delta: { color: '#003a70', domains: ['delta.com'] },
+        emirates: { color: '#d71920', domains: ['emirates.com'] }
+    },
+    "Government": {
+        irs: { color: '#005ea2', domains: ['irs.gov'] },
+        "uk gov": { color: '#1d70b8', domains: ['gov.uk'] },
+        "usa gov": { color: '#002868', domains: ['usa.gov'] },
+        nasa: { color: '#0b3d91', domains: ['nasa.gov'] }
+    }
+};
+
+/**
+ * Initialize the Visual DNA tab — called when dashboard loads
+ */
+function initVisualDNA() {
+    renderVdnaHelix();
+    renderVdnaBrandDatabase();
+    loadVdnaScans();
+
+    // Refresh button listener
+    const refreshBtn = document.getElementById('vdna-refresh-timeline');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            refreshBtn.innerHTML = '<span class="icon rotating">🔄</span> Refreshing...';
+            loadVdnaScans();
+            setTimeout(() => {
+                refreshBtn.innerHTML = '<span class="icon">🔄</span> Refresh';
+            }, 1000);
+        });
+    }
+
+    // Count total signatures (from chameleon's 200+ DB)
+    const sigEl = document.getElementById('vdna-signatures-count');
+    if (sigEl) {
+        // Count all brands across all categories
+        let totalBrands = 0;
+        for (const cat of Object.values(VDNA_BRAND_DB)) {
+            totalBrands += Object.keys(cat).length;
+        }
+        // The actual chameleon.js has 200+ but our dashboard subset shows key ones
+        // Display the real number
+        sigEl.textContent = '200+';
+    }
+}
+
+/**
+ * Generate DNA Helix Animation (programmatic SVG-like dots)
+ */
+function renderVdnaHelix() {
+    const container = document.getElementById('vdna-helix');
+    if (!container) return;
+
+    const colors = ['#818cf8', '#34d399', '#f472b6', '#60a5fa', '#a78bfa', '#34d399'];
+    let html = '<div class="vdna-helix">';
+
+    for (let i = 0; i < 24; i++) {
+        const angle = (i / 24) * Math.PI * 4;
+        const x = 60 + Math.sin(angle) * 35;
+        const y = 5 + (i / 24) * 110;
+        const color = colors[i % colors.length];
+        const delay = (i * 0.15).toFixed(2);
+
+        html += `<div class="vdna-helix-strand" style="left:${x}px;top:${y}px;background:${color};animation-delay:${delay}s;width:${4 + (i % 3)}px;height:${4 + (i % 3)}px;"></div>`;
+
+        // Mirror strand (double helix)
+        const x2 = 60 - Math.sin(angle) * 35;
+        html += `<div class="vdna-helix-strand" style="left:${x2}px;top:${y}px;background:${color};opacity:0.5;animation-delay:${(delay * 1 + 0.5).toFixed(2)}s;width:${3 + (i % 2)}px;height:${3 + (i % 2)}px;"></div>`;
+
+        // Connecting bar every 3rd
+        if (i % 3 === 0) {
+            const barWidth = Math.abs(x - x2);
+            const barLeft = Math.min(x, x2);
+            html += `<div style="position:absolute;left:${barLeft + 2}px;top:${y + 1}px;width:${barWidth - 4}px;height:2px;background:linear-gradient(90deg,${color},transparent,${colors[(i + 3) % colors.length]});opacity:0.3;border-radius:1px;"></div>`;
+        }
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/**
+ * Render the brand signature database with category tabs
+ */
+function renderVdnaBrandDatabase(filterCat = 'all') {
+    const tabsContainer = document.getElementById('vdna-cat-tabs');
+    const gridContainer = document.getElementById('vdna-brand-grid');
+    const dbCountEl = document.getElementById('vdna-db-count');
+
+    if (!tabsContainer || !gridContainer) return;
+
+    // Render category tabs
+    const categories = Object.keys(VDNA_BRAND_DB);
+    let tabsHtml = `<div class="vdna-cat-tab ${filterCat === 'all' ? 'active' : ''}" data-cat="all">All</div>`;
+    categories.forEach(cat => {
+        tabsHtml += `<div class="vdna-cat-tab ${filterCat === cat ? 'active' : ''}" data-cat="${cat}">${cat}</div>`;
+    });
+    tabsContainer.innerHTML = tabsHtml;
+
+    // Tab click handlers
+    tabsContainer.querySelectorAll('.vdna-cat-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            renderVdnaBrandDatabase(tab.getAttribute('data-cat'));
+        });
+    });
+
+    // Render brand cards
+    let gridHtml = '';
+    let visibleCount = 0;
+
+    const renderBrands = (catName, brands) => {
+        for (const [name, data] of Object.entries(brands)) {
+            visibleCount++;
+            const initial = name.charAt(0).toUpperCase();
+            const domainText = data.domains.join(', ');
+
+            gridHtml += `
+                <div class="vdna-brand-card" title="${catName}: ${name}\nDomains: ${domainText}">
+                    <div class="vdna-brand-swatch" style="background:${data.color};">${initial}</div>
+                    <div class="vdna-brand-info">
+                        <div class="vdna-brand-name">${name}</div>
+                        <div class="vdna-brand-domains">${domainText}</div>
+                    </div>
+                </div>
+            `;
+        }
+    };
+
+    if (filterCat === 'all') {
+        for (const [catName, brands] of Object.entries(VDNA_BRAND_DB)) {
+            renderBrands(catName, brands);
+        }
+    } else if (VDNA_BRAND_DB[filterCat]) {
+        renderBrands(filterCat, VDNA_BRAND_DB[filterCat]);
+    }
+
+    gridContainer.innerHTML = gridHtml;
+
+    if (dbCountEl) {
+        dbCountEl.textContent = `${visibleCount} ${filterCat === 'all' ? 'Brands' : filterCat}`;
+    }
+}
+
+/**
+ * Load scan history from storage and render the timeline + stats
+ */
+function loadVdnaScans() {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+
+    chrome.storage.local.get(['visualDnaScans'], (res) => {
+        const scans = res.visualDnaScans || [];
+        renderVdnaTimeline(scans);
+        updateVdnaStats(scans);
+    });
+}
+
+/**
+ * Update stats counters
+ */
+function updateVdnaStats(scans) {
+    const totalEl = document.getElementById('vdna-total-scans');
+    const clonesEl = document.getElementById('vdna-clones-detected');
+    const cleanEl = document.getElementById('vdna-clean-pages');
+
+    const total = scans.length;
+    const clones = scans.filter(s => s.isClone).length;
+    const clean = total - clones;
+
+    if (totalEl) totalEl.textContent = total;
+    if (clonesEl) clonesEl.textContent = clones;
+    if (cleanEl) cleanEl.textContent = clean;
+
+    // Update status pill if clones were detected
+    const pill = document.getElementById('vdna-status-pill');
+    if (pill && clones > 0) {
+        pill.style.background = 'rgba(239, 68, 68, 0.15)';
+        pill.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        pill.style.color = '#f87171';
+        pill.querySelector('.vdna-status-dot').style.background = '#f87171';
+        pill.querySelector('span:last-child').textContent = `⚠️ ${clones} Clone${clones > 1 ? 's' : ''} Detected — Engine Active`;
+    }
+}
+
+/**
+ * Render the scan timeline
+ */
+function renderVdnaTimeline(scans) {
+    const container = document.getElementById('vdna-timeline');
+    if (!container) return;
+
+    if (!scans || scans.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 13px;">
+                <div style="font-size: 40px; margin-bottom: 12px;">🧬</div>
+                No scan data yet. Browse some websites to see Visual DNA analysis here.
+            </div>
+        `;
+        return;
+    }
+
+    // Sort newest first, limit to 50
+    const sorted = [...scans].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 50);
+
+    let html = '';
+    sorted.forEach(scan => {
+        const isClone = scan.isClone;
+        const iconClass = isClone ? 'danger' : 'safe';
+        const icon = isClone ? '🚨' : '✅';
+        const hostname = scan.hostname || 'Unknown';
+        const brand = scan.brand ? scan.brand.charAt(0).toUpperCase() + scan.brand.slice(1) : null;
+        const confidence = scan.confidence || 0;
+        const reasons = scan.reasons || [];
+        const timeStr = formatTimeAgo(scan.timestamp);
+
+        let subtitle = '';
+        if (isClone) {
+            subtitle = `Impersonating <strong>${brand}</strong> (${confidence}% match)`;
+            if (reasons.length > 0) {
+                subtitle += ` — ${reasons.join(', ')}`;
+            }
+        } else {
+            subtitle = 'No brand impersonation detected';
+        }
+
+        const badge = isClone
+            ? `<span class="vdna-tl-badge clone">🦎 CLONE DETECTED</span>`
+            : `<span class="vdna-tl-badge clean">CLEAN</span>`;
+
+        html += `
+            <div class="vdna-timeline-item">
+                <div class="vdna-tl-icon ${iconClass}">${icon}</div>
+                <div class="vdna-tl-body">
+                    <div class="vdna-tl-title">${hostname}</div>
+                    <div class="vdna-tl-sub">${subtitle}</div>
+                    ${badge}
+                </div>
+                <div class="vdna-tl-time">${timeStr}</div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+/**
+ * Utility: Format timestamp to "X ago" string
+ */
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return 'Unknown';
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    const seconds = Math.floor(diff / 1000);
+    if (seconds < 60) return 'Just now';
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Initialize Visual DNA when DOM is ready (extend existing DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', () => {
+    // Defer VDNA init slightly to not block primary dashboard render
+    setTimeout(() => {
+        initVisualDNA();
+    }, 200);
+
+    // Auto-load scans when switching to Visual DNA tab
+    const vdnaTabLink = document.querySelector('[data-tab="tab-visual-dna"]');
+    if (vdnaTabLink) {
+        vdnaTabLink.addEventListener('click', () => {
+            loadVdnaScans();
+        });
+    }
+});

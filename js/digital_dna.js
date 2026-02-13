@@ -2,6 +2,11 @@
  * Digital DNA - Fingerprint Spoofing Module
  * Injected into the Main World execution environment.
  * Overrides navigator and screen properties to create a "Shadow Profile".
+ * 
+ * Protection Layers:
+ * 1. Navigator Spoofing (User-Agent, Platform, CPU, RAM, Vendor)
+ * 2. Screen Resolution Spoofing (1920x1080)
+ * 3. Canvas Noise Injection (Anti-Fingerprinting)
  */
 (function () {
     // 🛡️ CONFIGURATION: Shadow Profile Data (Windows 10 / Chrome)
@@ -16,18 +21,16 @@
         screenHeight: 1080
     };
 
-    console.log("%c[Digital DNA] 🧬 Shadow Profile Activated (Injected by Bootloader)", "color: #00ff00; background: #000; font-size: 12px; padding: 4px;");
+    console.log("%c[Digital DNA] 🧬 Shadow Profile Activated", "color: #00ff00; background: #000; font-size: 12px; padding: 4px;");
 
     // 🛠️ HELPER: Property Override (Robust)
     function overrideProperty(object, property, value) {
         try {
-            // Try defining on the object instance first
             Object.defineProperty(object, property, {
                 get: () => value,
                 configurable: true
             });
         } catch (e) {
-            // Fallback: Try defining on the prototype
             try {
                 const proto = Object.getPrototypeOf(object);
                 Object.defineProperty(proto, property, {
@@ -41,8 +44,9 @@
     }
 
     try {
-        // 1. Spoof Navigator (User Agent, Platform, etc.)
-        // We override both the instance and potentially the prototype to be sure
+        // ════════════════════════════════════════════
+        // 1. NAVIGATOR SPOOFING
+        // ════════════════════════════════════════════
         const nav = window.navigator;
 
         overrideProperty(nav, 'userAgent', SHADOW_PROFILE.userAgent);
@@ -52,27 +56,51 @@
         overrideProperty(nav, 'hardwareConcurrency', SHADOW_PROFILE.hardwareConcurrency);
         overrideProperty(nav, 'deviceMemory', SHADOW_PROFILE.deviceMemory);
 
-        // 2. Spoof Screen Resolution (1920x1080)
-        // Screen properties are often read-only, so we target the prototype if needed
+        console.log(`[Digital DNA] ✅ Navigator Spoofed → ${navigator.platform} / ${navigator.userAgent.slice(0, 50)}...`);
+
+        // ════════════════════════════════════════════
+        // 2. SCREEN RESOLUTION SPOOFING
+        // ════════════════════════════════════════════
         const screen = window.screen;
         overrideProperty(screen, 'width', SHADOW_PROFILE.screenWidth);
         overrideProperty(screen, 'height', SHADOW_PROFILE.screenHeight);
         overrideProperty(screen, 'availWidth', SHADOW_PROFILE.screenWidth);
         overrideProperty(screen, 'availHeight', SHADOW_PROFILE.screenHeight - 40); // Minus taskbar
 
-        console.log(`[Digital DNA] User Agent Spoofed: ${navigator.userAgent}`);
-        console.log(`[Digital DNA] Platform Spoofed: ${navigator.platform}`);
+        console.log(`[Digital DNA] ✅ Screen Spoofed → ${screen.width}x${screen.height}`);
 
-        // 3. Canvas Noise Injection (Anti-Fingerprinting)
-        // We slightly modify canvas rendering so specific "hash" tracking fails.
+        // ════════════════════════════════════════════
+        // 3. CANVAS NOISE INJECTION (Anti-Fingerprinting)
+        // ════════════════════════════════════════════
         const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
         HTMLCanvasElement.prototype.toDataURL = function (type) {
-            // Only apply noise if context exists and has data
-            // (Simplified for stability - pure noisification would modify pixel data via getContext)
-            // console.log("[Digital DNA] Canvas Read Attempt Detected & Obfuscated");
-            // In a full implementation, we would modify the pixel buffer slightly here.
+            try {
+                const ctx = this.getContext('2d');
+                if (ctx && this.width > 0 && this.height > 0) {
+                    const imageData = ctx.getImageData(0, 0, 1, 1);
+                    imageData.data[3] = imageData.data[3] === 255 ? 254 : 255;
+                    ctx.putImageData(imageData, 0, 0);
+                }
+            } catch (e) {
+                // Canvas may be tainted — ignore silently
+            }
             return originalToDataURL.apply(this, arguments);
         };
+
+        console.log("[Digital DNA] ✅ Canvas Noise Injection Active");
+
+        // ════════════════════════════════════════════
+        // SUMMARY
+        // ════════════════════════════════════════════
+        console.log(
+            "%c[Digital DNA] 🧬 Shadow Profile Active\n" +
+            `  → OS: ${SHADOW_PROFILE.platform} (Windows 10)\n` +
+            `  → Browser: Chrome 120\n` +
+            `  → Screen: ${SHADOW_PROFILE.screenWidth}x${SHADOW_PROFILE.screenHeight}\n` +
+            `  → CPU: ${SHADOW_PROFILE.hardwareConcurrency} cores | RAM: ${SHADOW_PROFILE.deviceMemory}GB\n` +
+            `  → Canvas: Noise injected`,
+            "color: #00ff88; background: #0a0a1a; font-size: 11px; padding: 6px 10px; border-radius: 4px; border: 1px solid #00ff88;"
+        );
 
     } catch (e) {
         console.warn("[Digital DNA] Injection partially failed:", e);

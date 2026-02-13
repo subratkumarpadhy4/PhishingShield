@@ -220,6 +220,27 @@ function initRiskAnalysis(isFortressMode) {
             // FEATURE LOCK: Unlocks at Level 20 (Sentinel)
             if (enableChameleon && typeof Chameleon !== 'undefined') {
                 const dnaResult = Chameleon.scan();
+
+                // 🧬 Store Visual DNA scan result for Dashboard visualization
+                const dnaScanEntry = {
+                    hostname: window.location.hostname,
+                    url: window.location.href,
+                    timestamp: Date.now(),
+                    isClone: dnaResult.isClone,
+                    brand: dnaResult.brand || null,
+                    confidence: dnaResult.confidence || 0,
+                    reasons: dnaResult.reasons || [],
+                    pageTitle: document.title
+                };
+
+                chrome.storage.local.get(['visualDnaScans'], (res) => {
+                    const scans = res.visualDnaScans || [];
+                    // Keep last 200 scans
+                    if (scans.length > 200) scans.splice(0, scans.length - 200);
+                    scans.push(dnaScanEntry);
+                    chrome.storage.local.set({ visualDnaScans: scans });
+                });
+
                 if (dnaResult.isClone) {
                     console.warn("[Content] 🦎 Chameleon Detected Clone:", dnaResult.brand);
                     analysis.score = 100; // Critical Threat - Override to Max

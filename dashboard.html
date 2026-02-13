@@ -703,6 +703,387 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* ============================================ */
+        /* --- VISUAL DNA TAB STYLES --- */
+        /* ============================================ */
+        .vdna-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        .vdna-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .vdna-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .vdna-hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+        .vdna-helix-container {
+            width: 120px;
+            height: 120px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .vdna-helix {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            animation: vdna-rotate 8s linear infinite;
+        }
+        .vdna-helix-strand {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: vdna-pulse 2s ease-in-out infinite;
+        }
+        @keyframes vdna-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes vdna-pulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+        .vdna-hero-info h2 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        .vdna-hero-info h2 span {
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .vdna-hero-info p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 400px;
+        }
+        .vdna-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            color: #34d399;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+        .vdna-status-dot {
+            width: 8px;
+            height: 8px;
+            background: #34d399;
+            border-radius: 50%;
+            animation: vdna-blink 1.5s ease-in-out infinite;
+        }
+        @keyframes vdna-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Stats Row */
+        .vdna-stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .vdna-stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .vdna-stat-card:hover {
+            border-color: #818cf8;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+        }
+        .vdna-stat-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .vdna-stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1;
+        }
+        .vdna-stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 6px;
+        }
+
+        /* Brand Grid */
+        .vdna-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .vdna-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .vdna-section-badge {
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366f1;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+        .vdna-category-tabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .vdna-cat-tab {
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: white;
+            border: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .vdna-cat-tab:hover,
+        .vdna-cat-tab.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        .vdna-brand-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .vdna-brand-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .vdna-brand-grid::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .vdna-brand-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+        .vdna-brand-card:hover {
+            border-color: #818cf8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        }
+        .vdna-brand-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+        }
+        .vdna-brand-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .vdna-brand-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--dark);
+            text-transform: capitalize;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .vdna-brand-domains {
+            font-size: 10px;
+            color: var(--secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Scan Timeline */
+        .vdna-timeline-container {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-top: 28px;
+        }
+        .vdna-timeline {
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .vdna-timeline::-webkit-scrollbar {
+            width: 4px;
+        }
+        .vdna-timeline::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .vdna-timeline-item {
+            display: flex;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid #f1f5f9;
+            align-items: flex-start;
+            transition: background 0.2s;
+        }
+        .vdna-timeline-item:last-child {
+            border-bottom: none;
+        }
+        .vdna-timeline-item:hover {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding-left: 8px;
+            margin-left: -8px;
+        }
+        .vdna-tl-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .vdna-tl-icon.safe {
+            background: #ecfdf5;
+        }
+        .vdna-tl-icon.danger {
+            background: #fef2f2;
+        }
+        .vdna-tl-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .vdna-tl-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 2px;
+        }
+        .vdna-tl-sub {
+            font-size: 11px;
+            color: var(--secondary);
+        }
+        .vdna-tl-time {
+            font-size: 11px;
+            color: #94a3b8;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .vdna-tl-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .vdna-tl-badge.clone {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .vdna-tl-badge.clean {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        /* DARK THEME overrides for Visual DNA */
+        body.dark-theme .vdna-stat-card,
+        body.dark-theme .vdna-brand-card,
+        body.dark-theme .vdna-timeline-container {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        body.dark-theme .vdna-stat-value,
+        body.dark-theme .vdna-brand-name,
+        body.dark-theme .vdna-tl-title,
+        body.dark-theme .vdna-section-title {
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme .vdna-cat-tab {
+            background: #1e293b;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+        body.dark-theme .vdna-cat-tab.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        body.dark-theme .vdna-timeline-item:hover {
+            background: #0f172a;
+        }
+        body.dark-theme .vdna-timeline-item {
+            border-color: #334155;
+        }
     </style>
 </head>
 
@@ -725,6 +1106,7 @@
                 <li><a class="nav-item" data-tab="tab-threats">⚠️ Threats Encountered</a></li>
                 <li><a class="nav-item" data-tab="tab-reports">📢 My Reports</a></li>
                 <li><a class="nav-item" data-tab="tab-extensions">🧩 Extensions</a></li>
+                <li><a class="nav-item" data-tab="tab-visual-dna">🧬 Visual DNA</a></li>
                 <li><a class="nav-item" data-tab="tab-virustotal">🛡️ VirusTotal</a></li>
             </ul>
         </nav>
@@ -1091,6 +1473,116 @@
                         <p style="font-size: 13px; color: #14532d; line-height: 1.5;">
                             Verified extensions from known developers or the official Web Store. Safe to use.
                         </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: VISUAL DNA -->
+        <div id="tab-visual-dna" class="tab-content">
+
+            <!-- Hero Section -->
+            <div class="vdna-hero">
+                <div class="vdna-hero-content">
+                    <div class="vdna-helix-container" id="vdna-helix">
+                        <!-- JS Generated Helix Animation -->
+                    </div>
+                    <div class="vdna-hero-info">
+                        <h2>🧬 <span>Visual DNA</span> Engine</h2>
+                        <p>The Chameleon engine scans every page you visit, comparing its visual fingerprint against 200+ brand signatures to detect impersonation attacks in real time.</p>
+                        <div class="vdna-status-pill" id="vdna-status-pill">
+                            <div class="vdna-status-dot"></div>
+                            <span>Engine Active — Scanning All Pages</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="vdna-stats-row">
+                <div class="vdna-stat-card">
+                    <div class="vdna-stat-icon">🔬</div>
+                    <div class="vdna-stat-value" id="vdna-total-scans">0</div>
+                    <div class="vdna-stat-label">Pages Scanned</div>
+                </div>
+                <div class="vdna-stat-card">
+                    <div class="vdna-stat-icon">🚨</div>
+                    <div class="vdna-stat-value" id="vdna-clones-detected" style="color: #ef4444;">0</div>
+                    <div class="vdna-stat-label">Clones Detected</div>
+                </div>
+                <div class="vdna-stat-card">
+                    <div class="vdna-stat-icon">🛡️</div>
+                    <div class="vdna-stat-value" id="vdna-clean-pages" style="color: #10b981;">0</div>
+                    <div class="vdna-stat-label">Clean Pages</div>
+                </div>
+                <div class="vdna-stat-card">
+                    <div class="vdna-stat-icon">🧬</div>
+                    <div class="vdna-stat-value" id="vdna-signatures-count" style="color: #6366f1;">0</div>
+                    <div class="vdna-stat-label">Brand Signatures</div>
+                </div>
+            </div>
+
+            <!-- Two Column Layout: Brand Database + Recent Scans -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+                <!-- LEFT: Brand Signature Database -->
+                <div>
+                    <div class="vdna-section-header">
+                        <div class="vdna-section-title">
+                            🏷️ Brand Signature Database
+                            <span class="vdna-section-badge" id="vdna-db-count">0 Brands</span>
+                        </div>
+                    </div>
+                    <div class="vdna-category-tabs" id="vdna-cat-tabs">
+                        <!-- JS Populated -->
+                    </div>
+                    <div class="vdna-brand-grid" id="vdna-brand-grid">
+                        <!-- JS Populated -->
+                    </div>
+                </div>
+
+                <!-- RIGHT: Detection Timeline -->
+                <div class="vdna-timeline-container">
+                    <div class="vdna-section-header">
+                        <div class="vdna-section-title">
+                            📡 Scan Timeline
+                        </div>
+                        <button id="vdna-refresh-timeline" style="background: white; border: 1px solid var(--border-color); color: var(--secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
+                            <span class="icon">🔄</span> Refresh
+                        </button>
+                    </div>
+                    <div class="vdna-timeline" id="vdna-timeline">
+                        <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 13px;">
+                            <div style="font-size: 40px; margin-bottom: 12px;">🧬</div>
+                            No scan data yet. Browse some websites to see Visual DNA analysis here.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works Section -->
+            <div style="margin-top: 28px; background: white; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color);">
+                <div class="vdna-section-title" style="margin-bottom: 16px;">🔍 How Visual DNA Detection Works</div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                    <div style="text-align: center; padding: 16px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🌐</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">1. Page Visit</div>
+                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">Every page you visit triggers an automatic Visual DNA scan</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🎨</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">2. Extract Features</div>
+                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">Colors, logos, keywords, and title are extracted from the page</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🧬</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">3. DNA Matching</div>
+                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">Features are compared against 200+ known brand signatures</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🚨</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">4. Alert</div>
+                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">If a page mimics a brand but isn't official — instant alert</div>
                     </div>
                 </div>
             </div>
