@@ -17,17 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- 1. SETTINGS LOGIC ---
-    const togglePreview = document.getElementById('toggle-preview');
-    const toggleLogin = document.getElementById('toggle-login');
-    const toggleDownloads = document.getElementById('toggle-downloads');
+    const togglePreScan = document.getElementById('toggle-prescan');
     const toggleFortress = document.getElementById('toggle-fortress');
     const toggleShadow = document.getElementById('toggle-shadow');
 
     // Load Settings
-    chrome.storage.local.get(['enablePreview', 'enableLogin', 'enableDownloads', 'enableFortress', 'logHistoryLimit', 'digital_dna_mode'], (result) => {
-        if (togglePreview) togglePreview.checked = result.enablePreview !== false;
-        if (toggleLogin) toggleLogin.checked = result.enableLogin !== false;
-        if (toggleDownloads) toggleDownloads.checked = result.enableDownloads !== false;
+    chrome.storage.local.get(['enablePreScan', 'enableFortress', 'logHistoryLimit', 'digital_dna_mode'], (result) => {
+        if (togglePreScan) togglePreScan.checked = result.enablePreScan === true;
         if (toggleFortress) toggleFortress.checked = result.enableFortress === true;
         if (toggleShadow) toggleShadow.checked = result.digital_dna_mode === 'always';
 
@@ -36,25 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Save Settings Listeners
-    if (togglePreview) {
-        togglePreview.addEventListener('change', () => {
-            const val = togglePreview.checked;
-            chrome.storage.local.set({ enablePreview: val });
-            if (typeof Auth !== 'undefined' && Auth.syncSettings) Auth.syncSettings({ enablePreview: val });
-        });
-    }
-    if (toggleLogin) {
-        toggleLogin.addEventListener('change', () => {
-            const val = toggleLogin.checked;
-            chrome.storage.local.set({ enableLogin: val });
-            if (typeof Auth !== 'undefined' && Auth.syncSettings) Auth.syncSettings({ enableLogin: val });
-        });
-    }
-    if (toggleDownloads) {
-        toggleDownloads.addEventListener('change', () => {
-            const val = toggleDownloads.checked;
-            chrome.storage.local.set({ enableDownloads: val });
-            if (typeof Auth !== 'undefined' && Auth.syncSettings) Auth.syncSettings({ enableDownloads: val });
+    if (togglePreScan) {
+        togglePreScan.addEventListener('change', () => {
+            const val = togglePreScan.checked;
+            chrome.storage.local.set({ enablePreScan: val });
+            chrome.runtime.sendMessage({ type: "TOGGLE_PRESCAN", enabled: val });
         });
     }
     const limitInput = document.getElementById('history-limit');
