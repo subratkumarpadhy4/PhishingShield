@@ -29,24 +29,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
 
-                    // Remove Active Class from all
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    tabs.forEach(t => t.classList.remove('active'));
+                    const updateTabState = () => {
+                        // Remove Active Class from all
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        tabs.forEach(t => t.classList.remove('active'));
 
-                    // Add Active to Clicked
-                    link.classList.add('active');
-                    const tabId = link.getAttribute('data-tab');
-                    const tab = document.getElementById(tabId);
-                    if (tab) tab.classList.add('active');
+                        // Add Active to Clicked
+                        link.classList.add('active');
+                        const tabId = link.getAttribute('data-tab');
+                        const tab = document.getElementById(tabId);
+                        if (tab) tab.classList.add('active');
 
-                    // Update Title
-                    if (pageTitle) {
-                        let text = link.innerText.trim();
-                        // Remove emoji prefix if present (likely 2 chars + space)
-                        if (text.length > 3) text = text.substring(2).trim();
-                        pageTitle.textContent = text + (tabId === 'tab-overview' ? ' Overview' : '');
+                        // Update Title
+                        if (pageTitle) {
+                            let text = link.innerText.trim();
+                            // Remove emoji prefix if present (likely 2 chars + space)
+                            if (text.length > 3) text = text.substring(2).trim();
+                            pageTitle.textContent = text;
+                        }
+                        console.log("Tab Switched to:", tabId);
+                    };
+
+                    // Use View Transitions API if available for smooth React-like feel
+                    if (document.startViewTransition) {
+                        document.startViewTransition(() => {
+                            updateTabState();
+                        });
+                    } else {
+                        updateTabState();
                     }
-                    console.log("Tab Switched to:", tabId);
                 });
             });
         }
@@ -1179,6 +1190,31 @@ function renderExtensionTable(extensions) {
             ? '<span style="font-size:10px; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:4px; margin-left:5px;">MV2 (Legacy)</span>'
             : '<span style="font-size:10px; background:#f0fdf4; color:#15803d; padding:2px 6px; border-radius:4px; margin-left:5px;">MV3 (Modern)</span>';
 
+        const safeName = ext.name.replace(/[^a-zA-Z0-9 ]/g, ''); // Unique ID for collapse
+        const rowId = `ext-${ext.id}`;
+
+        let detailsHtml = '';
+        if (ext.details && ext.details.length > 0) {
+            const visible = ext.details.slice(0, 2);
+            const hidden = ext.details.slice(2);
+
+            detailsHtml = visible.map(d => `<div>• ${d}</div>`).join('');
+
+            if (hidden.length > 0) {
+                detailsHtml += `
+                    <div id="more-${rowId}" style="display:none; margin-top:5px;">
+                        ${hidden.map(d => `<div>• ${d}</div>`).join('')}
+                    </div>
+                    <button class="expand-btn" data-target="more-${rowId}" 
+                        style="background:#f1f5f9; border:none; color:#2563eb; font-size:11px; padding:2px 6px; border-radius:4px; cursor:pointer; margin-top:4px; font-weight:600;">
+                        +${hidden.length} more
+                    </button>
+                `;
+            }
+        } else {
+            detailsHtml = '<span style="color:#adb5bd; font-style:italic;">No flags detected</span>';
+        }
+
         tr.innerHTML = `
             <td>
                 <div style="font-weight:600; color:#1e293b;">${ext.name}</div>
@@ -1187,21 +1223,26 @@ function renderExtensionTable(extensions) {
             <td>${riskBadge}</td>
             <td>
                 <div style="font-size:12px; color:#475569;">
-                    ${ext.details && ext.details.length > 0 ? ext.details.slice(0, 2).map(d => `<div>• ${d}</div>`).join('') : 'No flags'}
-                    ${ext.details.length > 2 ? `<div style="font-style:italic;">+${ext.details.length - 2} more...</div>` : ''}
+                    ${detailsHtml}
                 </div>
-            </td>
-            <td>
-                <button class="analyze-ext-btn btn-sm" style="background:#2563eb; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">
-                    🤖 Analyze Risk
-                </button>
             </td>
         `;
 
-        const analyzeBtn = tr.querySelector('.analyze-ext-btn');
-        analyzeBtn.addEventListener('click', () => {
-            analyzeExtension(ext, analyzeBtn);
-        });
+        // Attach Event Listener for Expand Button
+        const expandBtn = tr.querySelector('.expand-btn');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('data-target');
+                const targetEl = document.getElementById(targetId);
+                if (targetEl) {
+                    targetEl.style.display = 'block';
+                    this.style.display = 'none';
+                }
+            });
+        }
+
+        // Removed AI Analysis Button Logic
 
         tbody.appendChild(tr);
     });

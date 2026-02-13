@@ -128,8 +128,7 @@ const navChat = document.getElementById('nav-chat');
 const navTraining = document.getElementById('nav-training');
 const navDomain = document.getElementById('nav-domain');
 
-const chatArea = document.getElementById('chat-box');
-const chatInput = document.getElementById('chat-input-area');
+const chatContainer = document.getElementById('chat-tab-container');
 const trainingArea = document.getElementById('training-dojo');
 const domainArea = document.getElementById('domain-dojo');
 
@@ -137,42 +136,36 @@ const domainInput = document.getElementById('domain-input');
 const analyzeBtn = document.getElementById('analyze-btn');
 
 function switchTab(tab) {
-    // Reset all
+    // Reset all nav buttons (remove active class and inline overrides)
     [navChat, navTraining, navDomain].forEach(btn => {
         if (btn) {
             btn.classList.remove('active');
-            btn.style.background = 'transparent';
-            btn.style.color = '#8b949e';
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.boxShadow = '';
         }
     });
 
-    [chatArea, chatInput, trainingArea, domainArea].forEach(el => {
+    // Hide all content areas
+    [chatContainer, trainingArea, domainArea].forEach(el => {
         if (el) el.style.display = 'none';
-
-        // Chat elements are flex/block specific
-        if (el === chatInput && tab === 'chat') el.style.display = 'flex';
-        if (el === chatArea && tab === 'chat') el.style.display = 'block';
     });
 
-    // Activate specific
+    // Activate specific tab
     if (tab === 'chat') {
-        navChat.classList.add('active');
-        navChat.style.background = '#238636'; navChat.style.color = 'white';
-        chatArea.style.display = 'block';
-        chatInput.style.display = 'flex';
+        if (navChat) navChat.classList.add('active');
+        if (chatContainer) chatContainer.style.display = 'flex';
     }
     else if (tab === 'training') {
-        if (navTraining) {
-            navTraining.classList.add('active');
-            navTraining.style.background = '#238636'; navTraining.style.color = 'white';
+        if (navTraining) navTraining.classList.add('active');
+        if (trainingArea) {
+            trainingArea.style.display = 'flex';
+            if (typeof initTraining === 'function') initTraining();
         }
-        trainingArea.style.display = 'flex'; // It's flex for centering
-        initTraining(); // Start game
     }
     else if (tab === 'domain') {
-        navDomain.classList.add('active');
-        navDomain.style.background = '#238636'; navDomain.style.color = 'white';
-        domainArea.style.display = 'block';
+        if (navDomain) navDomain.classList.add('active');
+        if (domainArea) domainArea.style.display = 'block';
     }
 
     // Overlay Handling
@@ -260,16 +253,115 @@ function checkTyposquat(url) {
     return false;
 }
 
-// --- SPOT THE PHISH GAME LOGIC ---
+// --- SPOT THE PHISH GAME LOGIC (Imported from Dojo Module) ---
+
+// Question Bank: A mix of obvious and subtle phishing scenarios
 const trainingCases = [
-    { url: "https://linkedin-jobs-apply.com", isPhish: true, reason: "Phishing: Contains hyphenated look-alike domain." },
-    { url: "https://accounts.google.com", isPhish: false, reason: "Safe: Official Google accounts domain." },
-    { url: "http://paypal-support-center.net", isPhish: true, reason: "Phishing: 'http' (insecure) and fake support domain." },
-    { url: "https://amazon.com", isPhish: false, reason: "Safe: Official Amazon domain." },
-    { url: "https://aple-id-recover.com", isPhish: true, reason: "Phishing: Misspelled 'aple' (Typosquatting)." },
-    { url: "https://microsoft.com/en-us/microsoft-365", isPhish: false, reason: "Safe: Valid Microsoft subdirectory." },
-    { url: "https://chaseweb.online-banking-secure.com", isPhish: true, reason: "Phishing: Uses long subdomain to hide real domain." },
-    { url: "https://github.com", isPhish: false, reason: "Safe: Official GitHub domain." }
+    // --- LEVEL 1: Legitimate Domains ---
+    { id: 1, difficulty: 1, scenario: "Google Search.", url: "https://www.google.com", isPhish: false, reason: "Safe. Official Google domain." },
+    { id: 2, difficulty: 1, scenario: "Amazon Shopping.", url: "https://www.amazon.com", isPhish: false, reason: "Safe. Official Amazon domain." },
+    { id: 3, difficulty: 1, scenario: "Facebook Login.", url: "https://www.facebook.com", isPhish: false, reason: "Safe. Official Facebook domain." },
+    { id: 4, difficulty: 1, scenario: "Netflix Home.", url: "https://www.netflix.com", isPhish: false, reason: "Safe. Official Netflix domain." },
+    { id: 5, difficulty: 1, scenario: "LinkedIn Profile.", url: "https://www.linkedin.com/in/me", isPhish: false, reason: "Safe. Official LinkedIn domain." },
+    { id: 6, difficulty: 1, scenario: "PayPal Dashboard.", url: "https://www.paypal.com/myaccount", isPhish: false, reason: "Safe. Official PayPal domain." },
+    { id: 7, difficulty: 1, scenario: "Microsoft Office.", url: "https://www.office.com", isPhish: false, reason: "Safe. Official Microsoft domain." },
+    { id: 8, difficulty: 1, scenario: "Zoom Meeting.", url: "https://zoom.us/j/123456", isPhish: false, reason: "Safe. Zoom uses `.us` TLD." },
+    { id: 9, difficulty: 2, scenario: "Apple ID Management.", url: "https://appleid.apple.com", isPhish: false, reason: "Safe. `appleid` is a subdomain of `apple.com`." },
+    { id: 10, difficulty: 2, scenario: "Bank of America.", url: "https://www.bankofamerica.com", isPhish: false, reason: "Safe. Official domain." },
+
+    // --- LEVEL 2: Basic Typosquatting ---
+    { id: 11, difficulty: 1, scenario: "Facebook Friend Request.", url: "https://faceb0ok.com", isPhish: true, reason: "Phishing. Zero '0' used instead of 'o'." },
+    { id: 12, difficulty: 1, scenario: "Google Docs.", url: "https://gooogle.com/docs", isPhish: true, reason: "Phishing. Extra 'o' in Google." },
+    { id: 13, difficulty: 1, scenario: "Twitter DM.", url: "https://twitterr.com", isPhish: true, reason: "Phishing. Double 'r' at the end." },
+    { id: 14, difficulty: 1, scenario: "Amazon Order.", url: "https://amazonn.com", isPhish: true, reason: "Phishing. Double 'n' at the end." },
+    { id: 15, difficulty: 1, scenario: "Instagram Photo.", url: "https://instgram.com", isPhish: true, reason: "Phishing. Missing 'a' (Inst-gram)." },
+    { id: 16, difficulty: 1, scenario: "LinkedIn Job Alert.", url: "https://link-edin.com", isPhish: true, reason: "Phishing. Added hyphen inside the brand name." },
+    { id: 17, difficulty: 1, scenario: "Microsoft Login.", url: "https://micosoft.com", isPhish: true, reason: "Phishing. Missing 'r' in Microsoft." },
+    { id: 18, difficulty: 1, scenario: "Netflix Update.", url: "https://net-flix.com", isPhish: true, reason: "Phishing. Added hyphen." },
+    { id: 19, difficulty: 1, scenario: "WhatsApp Web.", url: "https://whatsap.com", isPhish: true, reason: "Phishing. Single 'p' instead of double." },
+    { id: 20, difficulty: 1, scenario: "YouTube Video.", url: "https://yuotube.com", isPhish: true, reason: "Phishing. Swapped 'u' and 'o'." },
+
+    // --- LEVEL 3: TLD & Extension Spoofing ---
+    { id: 21, difficulty: 2, scenario: "Amazon Deals.", url: "http://amazon-orders.net", isPhish: true, reason: "Phishing. Amazon uses `.com`, rarely `.net` for orders." },
+    { id: 22, difficulty: 2, scenario: "Google Support.", url: "https://google-help.xyz", isPhish: true, reason: "Phishing. `.xyz` is common for spam. Google uses `google.com`." },
+    { id: 23, difficulty: 2, scenario: "Netflix Billing.", url: "http://netflix.billing-update.info", isPhish: true, reason: "Phishing. The domain is `billing-update.info`." },
+    { id: 24, difficulty: 2, scenario: "Office 365 Login.", url: "http://office365-login.org", isPhish: true, reason: "Phishing. Microsoft doesn't use `.org` for login portals." },
+    { id: 25, difficulty: 2, scenario: "PayPal Secure.", url: "https://paypal-secure.biz", isPhish: true, reason: "Phishing. `.biz` is unprofessional." },
+    { id: 26, difficulty: 2, scenario: "Apple Store.", url: "http://apple-store.shop", isPhish: true, reason: "Phishing. Apple uses `apple.com`." },
+    { id: 27, difficulty: 2, scenario: "Chase Bank.", url: "https://chase-bank.online", isPhish: true, reason: "Phishing. Major banks rarely use generic TLDs like `.online`." },
+    { id: 28, difficulty: 2, scenario: "Zoom Invite.", url: "https://zoom-meetings.club", isPhish: true, reason: "Phishing. Zoom uses `zoom.us`." },
+    { id: 29, difficulty: 2, scenario: "Slack Login.", url: "https://slack-workspace.site", isPhish: true, reason: "Phishing. Slack uses `slack.com`." },
+    { id: 30, difficulty: 2, scenario: "Dropbox Share.", url: "https://dropbox-files.top", isPhish: true, reason: "Phishing. `.top` is a high-risk TLD." },
+
+    // --- LEVEL 4: Subdomain Chaining ---
+    { id: 31, difficulty: 2, scenario: "Apple ID Reset.", url: "http://apple.id.security-check.com", isPhish: true, reason: "Phishing. Real domain is `security-check.com`." },
+    { id: 32, difficulty: 2, scenario: "PayPal Verification.", url: "https://paypal.com.secure-account.net", isPhish: true, reason: "Phishing. Real domain is `secure-account.net`." },
+    { id: 33, difficulty: 2, scenario: "Google Drive.", url: "https://drive.google.com.files.sharing.io", isPhish: true, reason: "Phishing. Real domain is `sharing.io`." },
+    { id: 34, difficulty: 2, scenario: "Amazon Prime.", url: "http://amazon.com-prime.rewards.club", isPhish: true, reason: "Phishing. Real domain is `rewards.club`." },
+    { id: 35, difficulty: 2, scenario: "Facebook Login.", url: "https://login.facebook.com.account-recovery.yz", isPhish: true, reason: "Phishing. Real domain is `account-recovery.yz`." },
+    { id: 36, difficulty: 2, scenario: "Bank Alert.", url: "https://chase.com.verify.login.alerts.net", isPhish: true, reason: "Phishing. Real domain is `alerts.net`." },
+    { id: 37, difficulty: 2, scenario: "Microsoft Teams.", url: "https://teams.microsoft.com.meeting-join.net", isPhish: true, reason: "Phishing. Real domain is `meeting-join.net`." },
+    { id: 38, difficulty: 2, scenario: "Netflix Free Month.", url: "http://netflix.com.free-offer.site", isPhish: true, reason: "Phishing. Real domain is `free-offer.site`." },
+    { id: 39, difficulty: 2, scenario: "Internal HR.", url: "https://hr.google.com", isPhish: false, reason: "Safe. `hr` is a subdomain of `google.com`." },
+    { id: 40, difficulty: 2, scenario: "Dev Portal.", url: "https://developer.apple.com", isPhish: false, reason: "Safe. `developer` is a subdomain of `apple.com`." },
+
+    // --- LEVEL 5: Homograph Attacks ---
+    { id: 41, difficulty: 3, scenario: "Coinbase Login.", url: "https://www.coịnbasẹ.com", isPhish: true, reason: "Phishing. Dots under 'i' and 'e' (Vietnamese characters)." },
+    { id: 42, difficulty: 3, scenario: "Apple Support.", url: "https://www.appIe.com", isPhish: true, reason: "Phishing. Capital 'I' (Eye) used instead of 'l' (El)." },
+    { id: 43, difficulty: 3, scenario: "Google Login.", url: "https://www.googIe.com", isPhish: true, reason: "Phishing. Capital 'I' (Eye) instead of 'l' (El)." },
+    { id: 44, difficulty: 3, scenario: "PayPal Secure.", url: "https://www.paypaI.com", isPhish: true, reason: "Phishing. Capital 'I' (Eye) instead of 'l' (El)." },
+    { id: 45, difficulty: 3, scenario: "Amazon Shopping.", url: "https://www.arnazon.com", isPhish: true, reason: "Phishing. 'r' + 'n' looks like 'm'." },
+    { id: 46, difficulty: 3, scenario: "Microsoft.", url: "https://www.rnicrosoft.com", isPhish: true, reason: "Phishing. 'r' + 'n' looks like 'm'." },
+    { id: 47, difficulty: 3, scenario: "Epic Games.", url: "https://www.epicgarnes.com", isPhish: true, reason: "Phishing. 'r' + 'n' looks like 'm'." },
+    { id: 48, difficulty: 3, scenario: "Instagram.", url: "https://www.instagram.co", isPhish: true, reason: "Phishing. Missing 'm' at the end (.co instead of .com)." },
+    { id: 49, difficulty: 3, scenario: "Generic Bank.", url: "https://www.bạṅk.com", isPhish: true, reason: "Phishing. Accents on letters." },
+    { id: 50, difficulty: 3, scenario: "Russian VK.", url: "https://vk.com", isPhish: false, reason: "Safe. Valid short domain." },
+
+    // --- LEVEL 6: Hyphenated Confusion ---
+    { id: 51, difficulty: 1, scenario: "Secure Login.", url: "http://paypal-secure-login.com", isPhish: true, reason: "Phishing. Attackers imply it's PayPal via hyphens." },
+    { id: 52, difficulty: 1, scenario: "Amazon Prime.", url: "http://amazon-prime-video.net", isPhish: true, reason: "Phishing. Long hyphenated domain." },
+    { id: 53, difficulty: 1, scenario: "Google Cloud.", url: "https://google-cloud-storage.com", isPhish: true, reason: "Phishing. Real domain is `cloud.google.com`." },
+    { id: 54, difficulty: 1, scenario: "Apple Support.", url: "https://apple-support-center.com", isPhish: true, reason: "Phishing. Real domain is `support.apple.com`." },
+    { id: 55, difficulty: 1, scenario: "Facebook Security.", url: "https://facebook-security-check.com", isPhish: true, reason: "Phishing. Real domain is `facebook.com`." },
+    { id: 56, difficulty: 1, scenario: "Netflix Account.", url: "https://netflix-account-update.com", isPhish: true, reason: "Phishing. Real domain is `netflix.com`." },
+    { id: 57, difficulty: 1, scenario: "Instagram Verify.", url: "https://instagram-verify-badge.com", isPhish: true, reason: "Phishing. Real domain is `instagram.com`." },
+    { id: 58, difficulty: 1, scenario: "WhatsApp Backup.", url: "https://whatsapp-backup-restore.com", isPhish: true, reason: "Phishing. Real domain is `whatsapp.com`." },
+    { id: 59, difficulty: 1, scenario: "Twitter Support.", url: "https://twitter-helpdesk.com", isPhish: true, reason: "Phishing. Real domain is `help.twitter.com`." },
+    { id: 60, difficulty: 1, scenario: "LinkedIn Jobs.", url: "https://linkedin-jobs-apply.com", isPhish: true, reason: "Phishing. Real domain is `linkedin.com`." },
+
+    // --- LEVEL 7: Brand Abuse ---
+    { id: 61, difficulty: 2, scenario: "Windows Virus Alert.", url: "http://microsoft-windows-support.com", isPhish: true, reason: "Phishing. Microsoft doesn't use `microsoft-windows-support.com`." },
+    { id: 62, difficulty: 2, scenario: "McAfee Expiry.", url: "https://mcafee-renewal-discount.com", isPhish: true, reason: "Phishing. Fake renewal site." },
+    { id: 63, difficulty: 2, scenario: "Norton Antivirus.", url: "http://norton-antivirus-check.com", isPhish: true, reason: "Phishing. Fake checker site." },
+    { id: 64, difficulty: 2, scenario: "Geek Squad Help.", url: "https://geek-squad-remote-help.com", isPhish: true, reason: "Phishing. Fake support site." },
+    { id: 66, difficulty: 2, scenario: "Zoom Installer.", url: "https://zoom-download-center.com", isPhish: true, reason: "Phishing. Real domain is `zoom.us/download`." },
+    { id: 67, difficulty: 2, scenario: "Chrome Update.", url: "http://chrome-update-browser.com", isPhish: true, reason: "Phishing. Chrome updates automatically internally." },
+    { id: 68, difficulty: 2, scenario: "Driver Update.", url: "https://hp-drivers-update.com", isPhish: true, reason: "Phishing. Real domain is `support.hp.com`." },
+    { id: 69, difficulty: 2, scenario: "Dell Support.", url: "https://dell-laptop-support.com", isPhish: true, reason: "Phishing. Real domain is `dell.com`." },
+    { id: 70, difficulty: 2, scenario: "Lenovo Drivers.", url: "http://lenovo-drivers-fix.com", isPhish: true, reason: "Phishing. Real domain is `lenovo.com`." },
+
+    // --- LEVEL 8: File Vectors ---
+    { id: 71, difficulty: 2, scenario: "PDF Invoice.", url: "data:text/html;base64,PHNjcmlwdD5hbGVydCgnaGFja2VkJyk8L3NjcmlwdD4=", isPhish: true, reason: "Phishing. Data URI contains executable code." },
+    { id: 72, difficulty: 2, scenario: "Local File.", url: "file:///C:/Users/Admin/Downloads/invoice.exe", isPhish: true, reason: "Phishing. Links to local file execution." },
+
+    // --- LEVEL 9: URL Shorteners & Obfuscation ---
+    { id: 76, difficulty: 3, scenario: "Bitly Link.", url: "https://bit.ly/3x89a", isPhish: true, reason: "Phishing. Short links hide the destination." },
+    { id: 77, difficulty: 3, scenario: "TinyURL.", url: "https://tinyurl.com/secure-login", isPhish: true, reason: "Phishing. Short links hide the destination." },
+    { id: 79, difficulty: 3, scenario: "Username Obfuscation.", url: "https://google.com@evil.com", isPhish: true, reason: "Phishing. `@` symbol makes `google.com` the username." },
+    { id: 80, difficulty: 3, scenario: "IP Address.", url: "http://45.33.22.11/login", isPhish: true, reason: "Phishing. Professional sites use domains, not IPs." },
+    { id: 81, difficulty: 3, scenario: "Local Router.", url: "http://192.168.1.1", isPhish: false, reason: "Safe. Local router IP address." },
+    { id: 82, difficulty: 3, scenario: "Localhost.", url: "http://127.0.0.1:3000", isPhish: false, reason: "Safe. Local development server." },
+    { id: 83, difficulty: 3, scenario: "Discord Gift.", url: "https://dlscord.gg/gift", isPhish: true, reason: "Phishing. `dlscord` (L) instead of `discord`." },
+
+    // --- LEVEL 10: Final Exam ---
+    { id: 86, difficulty: 2, scenario: "Fortnite V-Bucks.", url: "https://fortnite-vbucks-generator.net", isPhish: true, reason: "Phishing. Fake generator site." },
+    { id: 87, difficulty: 2, scenario: "Minecraft Skins.", url: "https://minecraft.net", isPhish: false, reason: "Safe. Official domain." },
+    { id: 88, difficulty: 2, scenario: "Twitch Stream.", url: "https://twitch.tv", isPhish: false, reason: "Safe. Official domain." },
+    { id: 91, difficulty: 2, scenario: "Spotify Web Player.", url: "https://open.spotify.com", isPhish: false, reason: "Safe. Official subdomain." },
+    { id: 92, difficulty: 2, scenario: "GitHub Repo.", url: "https://github.com", isPhish: false, reason: "Safe. Official domain." },
+    { id: 93, difficulty: 2, scenario: "Fake GitHub.", url: "https://github-login.com", isPhish: true, reason: "Phishing. Fake login site." },
+    { id: 94, difficulty: 1, scenario: "Wikipedia.", url: "https://wikipedia.org", isPhish: false, reason: "Safe. Official domain." },
+    { id: 100, difficulty: 3, scenario: "The End.", url: "https://phishingshield.io", isPhish: false, reason: "Safe. That's us!" }
 ];
 
 let currentQuiz = null;
