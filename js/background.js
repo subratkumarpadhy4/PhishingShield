@@ -668,6 +668,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // 9. TOGGLE SHADOW PROFILE (Digital DNA)
     if (request.type === "TOGGLE_SHADOW_PROFILE") {
         const SCRIPT_ID = "digital-dna-script";
+        const RULE_ID = 1001; // Reserved ID for Shadow Profile Header Rule
+        const SHADOW_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
         if (request.enabled) {
             // 1. PERSISTENCE: Register script globally (for future reloads)
@@ -696,12 +698,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
             });
 
+            // 3. NETWORK SPOOFING: Rewrite User-Agent Header (Perfect Deception)
+            chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: [RULE_ID], // clear old if exists
+                addRules: [{
+                    "id": RULE_ID,
+                    "priority": 1,
+                    "action": {
+                        "type": "modifyHeaders",
+                        "requestHeaders": [
+                            { "header": "User-Agent", "operation": "set", "value": SHADOW_UA },
+                            { "header": "sec-ch-ua", "operation": "set", "value": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"" },
+                            { "header": "sec-ch-ua-platform", "operation": "set", "value": "\"Windows\"" }
+                        ]
+                    },
+                    "condition": {
+                        "urlFilter": "*",
+                        "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "script", "image", "stylesheet", "object", "ping", "csp_report", "media", "websocket", "other"]
+                    }
+                }]
+            }).then(() => {
+                console.log("[Oculus] 🎭 Network Headers Spoofed (User-Agent -> Windows)");
+            });
+
             sendResponse({ success: true });
 
         } else {
             // Unregister script
             chrome.scripting.unregisterContentScripts({ ids: [SCRIPT_ID] })
                 .catch(err => { });
+
+            // Remove Network Spoofing Rules
+            chrome.declarativeNetRequest.updateDynamicRules({
+                removeRuleIds: [RULE_ID]
+            }).then(() => {
+                console.log("[Oculus] 🎭 Network Headers Restored (Original)");
+            });
+
             sendResponse({ success: true });
         }
         return true;
