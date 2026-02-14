@@ -95,6 +95,7 @@ const Chameleon = {
         fidelity: { colors: ['#125e36'], keywords: ['log in', 'fidelity'], officialDomains: ['fidelity.com'] },
         goldmansachs: { colors: ['#7399c6'], keywords: ['login', 'goldman sachs'], officialDomains: ['goldmansachs.com', 'gs.com'] },
         morganstanley: { colors: ['#000000'], keywords: ['login', 'morgan stanley'], officialDomains: ['morganstanley.com'] },
+        robinhood: { colors: ['#00c805'], keywords: ['log in', 'robinhood'], officialDomains: ['robinhood.com'] },
 
         // =======================
         // 4. INTERNATIONAL BANKING
@@ -303,7 +304,9 @@ const Chameleon = {
         eventbrite: { colors: ['#f05537'], keywords: ['log in', 'eventbrite'], officialDomains: ['eventbrite.com'] },
         meetup: { colors: ['#ed1c40'], keywords: ['log in', 'meetup'], officialDomains: ['meetup.com'] },
         patreon: { colors: ['#f96854'], keywords: ['log in', 'patreon'], officialDomains: ['patreon.com'] },
-        onlyfans: { colors: ['#00aff0'], keywords: ['log in', 'onlyfans'], officialDomains: ['onlyfans.com'] }
+        onlyfans: { colors: ['#00aff0'], keywords: ['log in', 'onlyfans'], officialDomains: ['onlyfans.com'] },
+        medium: { colors: ['#000000'], keywords: ['sign in', 'medium'], officialDomains: ['medium.com'] },
+        substack: { colors: ['#ff6719'], keywords: ['sign in', 'substack'], officialDomains: ['substack.com'] }
     },
 
     /**
