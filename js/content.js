@@ -256,7 +256,10 @@ function initRiskAnalysis(isFortressMode) {
             }
 
             // Fortress Mode: Heightened Sensitivity
-            if (isFortressMode) {
+            // EXEMPTION: Do not penalize Verified Official sites
+            const isVerifiedSafe = analysis.reasons.some(r => r.includes("Verified Official") || r.includes("Adaptive Trust"));
+
+            if (isFortressMode && !isVerifiedSafe) {
                 analysis.score += 25; // Base paranoia penalty
                 analysis.reasons.push("🛡️ Fortress Mode: Security Tightened (+25)");
                 if (analysis.score > 100) analysis.score = 100;

@@ -165,6 +165,11 @@ if (chrome.management) {
                 });
             }
         });
+
+        // Restore Fortress Mode
+        chrome.storage.local.get(['enableFortress'], (res) => {
+            updateFortressRules(res.enableFortress === true);
+        });
     });
 
     // 2. Install / Uninstall / Enable / Disable
@@ -748,6 +753,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+
+
+    // 10. TOGGLE FORTRESS MODE
+    if (request.type === "TOGGLE_FORTRESS") {
+        updateFortressRules(request.enabled);
+        sendResponse({ success: true });
+        return false;
+    }
+
     return false;
 });
 
@@ -899,31 +913,51 @@ function updateSafeStreak(isCritical) {
     });
 }
 
+
+const INDIAN_BANKS = [
+    // Public Sector
+    "onlinesbi.sbi", "sbi.co.in", "pnbindia.in", "bankofbaroda.in",
+    "canarabank.com", "unionbankofindia.co.in", "bankofindia.co.in",
+    "indianbank.in", "centralbankofindia.co.in", "iob.in",
+    "uco.bank", "bankofmaharashtra.in", "punjabandsindbank.co.in",
+
+    // Private Sector
+    "hdfcbank.com", "icicibank.com", "axisbank.com", "kotak.com",
+    "indusind.com", "yesbank.in", "idfcfirstbank.com", "federalbank.co.in",
+    "rblbank.com", "southindianbank.com", "bandhanbank.com", "dcbbank.com",
+    "cityunionbank.com", "karnatakabank.com", "kvb.co.in", "tmb.in",
+    "csb.co.in", "dhanbank.com", "nainitalbank.co.in", "jkbmail.com",
+    "idbibank.in", "aubank.in"
+];
+
 /**
  * Fortress Mode: Block 3rd Party Scripts
+ * EXEMPTION: Trusted Indian Banks are allowed to load 3rd party resources (e.g. for chat, security, analytics)
  */
 function updateFortressRules(enabled) {
     const FORTRESS_RULE_ID = 999;
 
     if (enabled) {
         chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [FORTRESS_RULE_ID], // Ensure clean slate
             addRules: [{
                 "id": FORTRESS_RULE_ID,
                 "priority": 10,
                 "action": { "type": "block" },
                 "condition": {
                     "resourceTypes": ["script"],
-                    "domainType": "thirdParty"
+                    "domainType": "thirdParty",
+                    "excludedInitiatorDomains": INDIAN_BANKS
                 }
             }]
         }, () => {
-            console.log("[Oculus] Fortress Mode: 3rd Party Scripts Blocked.");
+            console.log(`[Oculus] Fortress Mode ENABLED. 3rd Party Scripts Blocked (Except ${INDIAN_BANKS.length} Indian Banks).`);
         });
     } else {
         chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [FORTRESS_RULE_ID]
         }, () => {
-            console.log("[Oculus] Fortress Mode: Normal Script Access Restored.");
+            console.log("[Oculus] Fortress Mode DISABLED. Normal Script Access Restored.");
         });
     }
 }
@@ -1747,6 +1781,11 @@ function analyzeUrlHeuristics(urlString) {
 
         // Skip trusted domains
         if (TRUSTED_DOMAINS.has(hostname) || TRUSTED_DOMAINS.has(domain)) {
+            return { score: 0, reasons: [] };
+        }
+
+        // Skip Trusted Indian Banks (including subdomains)
+        if (typeof INDIAN_BANKS !== 'undefined' && INDIAN_BANKS.some(bank => hostname === bank || hostname.endsWith('.' + bank))) {
             return { score: 0, reasons: [] };
         }
 

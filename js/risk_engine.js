@@ -163,9 +163,37 @@ window.RiskEngine = {
 
                 if (isOfficial) {
                     console.log(`[RiskEngine] Verified Official Site: ${brand} at ${hostname}`);
-                    return { score: 0, reasons: [`✅ Verified Official ${brand.toUpperCase()} Website`] };
+                    return {
+                        score: 0,
+                        reasons: [`✅ Verified Official ${brand.toUpperCase()} Website`],
+                        primaryThreat: "Verified Safe"
+                    };
                 }
             }
+        }
+
+        // --- INDIAN BANKS OVERRIDE (Synced with Background) ---
+        // Ensure all registered Indian banks are treated as Verified
+        const INDIAN_BANKS_DOMAINS = [
+            "onlinesbi.sbi", "sbi.co.in", "pnbindia.in", "bankofbaroda.in",
+            "canarabank.com", "unionbankofindia.co.in", "bankofindia.co.in",
+            "indianbank.in", "centralbankofindia.co.in", "iob.in",
+            "uco.bank", "bankofmaharashtra.in", "punjabandsindbank.co.in",
+            "hdfcbank.com", "icicibank.com", "axisbank.com", "kotak.com",
+            "indusind.com", "yesbank.in", "idfcfirstbank.com", "federalbank.co.in",
+            "rblbank.com", "southindianbank.com", "bandhanbank.com", "dcbbank.com",
+            "cityunionbank.com", "karnatakabank.com", "kvb.co.in", "tmb.in",
+            "csb.co.in", "dhanbank.com", "nainitalbank.co.in", "jkbmail.com",
+            "idbibank.in", "aubank.in"
+        ];
+
+        const isIndianBank = INDIAN_BANKS_DOMAINS.some(d => hostname === d || hostname.endsWith("." + d));
+        if (isIndianBank) {
+            return {
+                score: 0,
+                reasons: [`✅ Verified Official INDIAN BANK Website`],
+                primaryThreat: "Verified Safe"
+            };
         }
 
         // 2. Domain Complexity Heuristic
