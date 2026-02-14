@@ -1099,8 +1099,8 @@
 
         <nav>
             <ul>
-                <li><a class="nav-item active" data-tab="tab-dojo">🥋 AI Dojo</a></li>
-                <li><a class="nav-item" data-tab="tab-overview">📊 Overview</a></li>
+                <li><a class="nav-item" data-tab="tab-dojo">🥋 AI Dojo</a></li>
+                <li><a class="nav-item active" data-tab="tab-overview">📊 Overview</a></li>
                 <li><a class="nav-item" data-tab="tab-leaderboard">🏆 Leaderboard</a></li>
                 <li><a class="nav-item" data-tab="tab-logs">🛡️ Activity Log</a></li>
                 <li><a class="nav-item" data-tab="tab-threats">⚠️ Threats Encountered</a></li>
@@ -1127,7 +1127,7 @@
 
     <main>
         <header>
-            <h1 id="page-title">AI Dojo</h1>
+            <h1 id="page-title">Overview</h1>
             <div style="display: flex; gap: 10px;">
                 <button id="theme-toggle"
                     style="background:none; border:none; font-size:20px; cursor:pointer;">🌙</button>
@@ -1140,7 +1140,7 @@
         </header>
 
         <!-- TAB: OVERVIEW -->
-        <div id="tab-overview" class="tab-content">
+        <div id="tab-overview" class="tab-content active">
             <div class="stats-grid">
                 <!-- Rank Card -->
                 <div class="stat-card" style="align-items: center; text-align: center;">
@@ -1589,7 +1589,7 @@
         </div>
 
         <!-- TAB: PHISH-SIM DOJO -->
-        <div id="tab-dojo" class="tab-content active" style="height: 100%;">
+        <div id="tab-dojo" class="tab-content" style="height: 100%;">
             <iframe src="tests/phish_sim.html"
                 style="width: 100%; height: 85vh; border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"></iframe>
         </div>
