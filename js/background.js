@@ -150,19 +150,7 @@ if (chrome.management) {
         // Restore Shadow Profile if needed
         chrome.storage.local.get(['digital_dna_mode'], (res) => {
             if (res.digital_dna_mode === 'always') {
-                const SCRIPT_ID = "digital-dna-script";
-                chrome.scripting.getRegisteredContentScripts({ ids: [SCRIPT_ID] }, (scripts) => {
-                    if (!scripts || scripts.length === 0) {
-                        console.log("[Oculus] restoring Shadow Profile...");
-                        chrome.scripting.registerContentScripts([{
-                            id: SCRIPT_ID,
-                            js: ["js/digital_dna.js"],
-                            matches: ["<all_urls>"],
-                            runAt: "document_start",
-                            world: "MAIN"
-                        }]);
-                    }
-                });
+                updateShadowProfileState(true);
             }
         });
 
@@ -188,35 +176,56 @@ if (chrome.management) {
 console.log("[Oculus] Initializing context menu module...");
 
 // Create context menu item for reporting websites
+// MV3-safe: remove specific ID first, then create (avoids removeAll async race)
 function createContextMenu() {
-    console.log("[Oculus] createContextMenu() called");
+    if (!chrome.contextMenus) return;
 
-    // Check if contextMenus API is available
-    if (!chrome.contextMenus) {
-        console.error("[Oculus] contextMenus API not available - extension may not have permission");
-        return;
-    }
+    // Try to remove the existing item by ID (silently ignore if it doesn't exist)
+    chrome.contextMenus.remove("report-to-phishingshield", () => {
+        // Consume any "no such item" error silently
+        void chrome.runtime.lastError;
 
-    // Remove all existing menus first to prevent duplicates
-    chrome.contextMenus.removeAll(() => {
-        if (chrome.runtime.lastError) {
-            console.warn("[Oculus] Error removing old menus:", chrome.runtime.lastError.message);
-        }
-
-        // Now create the menu item
+        // Now create fresh
         chrome.contextMenus.create({
             id: "report-to-phishingshield",
             title: "Report to PhishingShield",
-            contexts: ["page", "link", "selection"]
+            contexts: ["all"]
         }, () => {
             if (chrome.runtime.lastError) {
-                console.error("[Oculus] Context Menu Creation Error:", chrome.runtime.lastError.message);
+                console.warn("[Oculus] Context menu:", chrome.runtime.lastError.message);
             } else {
-                console.log("[Oculus] ✅ Context menu created successfully!");
+                console.log("[Oculus] ✅ Context menu ready");
             }
         });
     });
 }
+
+// =============================================================================
+// MV3 SERVICE WORKER KEEP-ALIVE + CONTEXT MENU PERSISTENCE
+// =============================================================================
+// MV3 service workers go idle and die after ~30 seconds of inactivity.
+// When they die, Chrome wipes all context menus. The ONLY reliable way to
+// re-register them is via alarms — the only event that can wake a dead worker.
+
+const KEEPALIVE_ALARM = "oculus-keepalive";
+
+// Set up the alarm on startup (runs every 1 minute)
+chrome.alarms.get(KEEPALIVE_ALARM, (alarm) => {
+    if (!alarm) {
+        chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: 1 });
+        console.log("[Oculus] ⏰ Keep-alive alarm set (1 min)");
+    }
+});
+
+// Every time the alarm fires, the service worker wakes up and re-registers
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === KEEPALIVE_ALARM) {
+        createContextMenu(); // Re-register context menu every minute
+    }
+});
+
+// CALL IMMEDIATELY — before any other code can fail and prevent this from running
+createContextMenu();
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -511,6 +520,94 @@ self.addEventListener('online', () => {
     processPendingReports();
 });
 
+// -----------------------------------------------------------------------------
+// SHADOW PROFILE (DIGITAL DNA) CONTROLLER
+// -----------------------------------------------------------------------------
+const SCRIPT_ID_SHADOW = "digital-dna-script";
+const RULE_ID_SHADOW = 1001; // Reserved ID for Shadow Profile Header Rule
+const SHADOW_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+function updateShadowProfileState(enabled, callback) {
+    if (enabled) {
+        // 1. Script Registration (MAIN World at document_start)
+        chrome.scripting.unregisterContentScripts({ ids: [SCRIPT_ID_SHADOW] })
+            .catch(() => {})
+            .finally(() => {
+                chrome.scripting.registerContentScripts([{
+                    id: SCRIPT_ID_SHADOW,
+                    js: ["js/digital_dna.js"],
+                    matches: ["<all_urls>"],
+                    runAt: "document_start",
+                    world: "MAIN"
+                }]).then(() => {
+                    console.log("[Oculus] 🧬 Digital DNA registered at document_start (MAIN world)");
+                }).catch(err => console.warn("[Oculus] Digital DNA register warning:", err));
+            });
+
+        // 2. Immediate injection into currently active tab
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0] && tabs[0].id) {
+                chrome.scripting.executeScript({
+                    target: { tabId: tabs[0].id },
+                    files: ["js/digital_dna.js"],
+                    world: "MAIN"
+                }).catch(() => {});
+            }
+        });
+
+        // 3. Network Header Spoofing via DNR
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [RULE_ID_SHADOW],
+            addRules: [{
+                "id": RULE_ID_SHADOW,
+                "priority": 10,
+                "action": {
+                    "type": "modifyHeaders",
+                    "requestHeaders": [
+                        { "header": "User-Agent", "operation": "set", "value": SHADOW_UA },
+                        { "header": "sec-ch-ua", "operation": "set", "value": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"" },
+                        { "header": "sec-ch-ua-mobile", "operation": "set", "value": "?0" },
+                        { "header": "sec-ch-ua-platform", "operation": "set", "value": "\"Windows\"" }
+                    ]
+                },
+                "condition": {
+                    "urlFilter": "*",
+                    "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "script", "image", "stylesheet", "object", "ping", "csp_report", "media", "websocket", "other"]
+                }
+            }]
+        }).then(() => {
+            console.log("[Oculus] 🎭 Network Headers Spoofed (User-Agent & Client Hints → Windows)");
+            if (callback) callback({ success: true, enabled: true });
+        });
+
+    } else {
+        // 1. Unregister script
+        chrome.scripting.unregisterContentScripts({ ids: [SCRIPT_ID_SHADOW] }).catch(() => {});
+
+        // 2. Remove Network Spoofing Rules
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [RULE_ID_SHADOW]
+        }).then(() => {
+            console.log("[Oculus] 🎭 Network Headers Restored (Original)");
+            if (callback) callback({ success: true, enabled: false });
+        });
+    }
+}
+
+// Immediate Top-Level Initialization
+chrome.storage.local.get(['digital_dna_mode'], (res) => {
+    if (res.digital_dna_mode === 'always') {
+        updateShadowProfileState(true);
+    }
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.storage.local.get(['digital_dna_mode'], (res) => {
+        if (res.digital_dna_mode === 'always') {
+            updateShadowProfileState(true);
+        }
+    });
+});
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // console.log("[Oculus] 🔵 Message received:", request.type);
@@ -680,77 +777,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // 9. TOGGLE SHADOW PROFILE (Digital DNA)
     if (request.type === "TOGGLE_SHADOW_PROFILE") {
-        const SCRIPT_ID = "digital-dna-script";
-        const RULE_ID = 1001; // Reserved ID for Shadow Profile Header Rule
-        const SHADOW_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        updateShadowProfileState(request.enabled === true, (res) => {
+            sendResponse(res);
+        });
+        return true; // Keep channel open for async response
+    }
 
-        if (request.enabled) {
-            // 1. PERSISTENCE: Register script globally (for future reloads)
-            chrome.scripting.registerContentScripts([{
-                id: SCRIPT_ID,
-                js: ["js/digital_dna.js"],
-                matches: ["<all_urls>"],
-                runAt: "document_start",
+    if (request.type === "ENSURE_SHADOW_PROFILE") {
+        if (sender.tab && sender.tab.id) {
+            chrome.scripting.executeScript({
+                target: { tabId: sender.tab.id },
+                files: ["js/digital_dna.js"],
                 world: "MAIN"
-            }]).catch(err => { /* Ignore duplicate */ });
-
-            // 2. IMMEDIATE ACTION: Inject Script Tag (Guaranteed Main World Execution)
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                const activeTab = tabs[0];
-                if (activeTab) {
-                    chrome.scripting.executeScript({
-                        target: { tabId: activeTab.id },
-                        func: () => {
-                            const s = document.createElement('script');
-                            s.src = chrome.runtime.getURL('js/digital_dna.js');
-                            s.onload = function () { this.remove(); };
-                            (document.head || document.documentElement).appendChild(s);
-                            console.log("[Oculus] Injecting Digital DNA via Script Tag...");
-                        }
-                    }).catch(e => console.warn("Script Tag Injection Failed", e));
-                }
-            });
-
-            // 3. NETWORK SPOOFING: Rewrite User-Agent Header (Perfect Deception)
-            chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: [RULE_ID],
-                addRules: [{
-                    "id": RULE_ID,
-                    "priority": 1,
-                    "action": {
-                        "type": "modifyHeaders",
-                        "requestHeaders": [
-                            { "header": "User-Agent", "operation": "set", "value": SHADOW_UA },
-                            { "header": "sec-ch-ua", "operation": "set", "value": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"" },
-                            { "header": "sec-ch-ua-platform", "operation": "set", "value": "\"Windows\"" }
-                        ]
-                    },
-                    "condition": {
-                        "urlFilter": "*",
-                        "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "script", "image", "stylesheet", "object", "ping", "csp_report", "media", "websocket", "other"]
-                    }
-                }]
-            }).then(() => {
-                console.log("[Oculus] 🎭 Network Headers Spoofed (User-Agent → Windows)");
-            });
-
-            sendResponse({ success: true });
-
-        } else {
-            // Unregister script
-            chrome.scripting.unregisterContentScripts({ ids: [SCRIPT_ID] })
-                .catch(err => { });
-
-            // Remove Network Spoofing Rules
-            chrome.declarativeNetRequest.updateDynamicRules({
-                removeRuleIds: [RULE_ID]
-            }).then(() => {
-                console.log("[Oculus] 🎭 Network Headers Restored (Original)");
-            });
-
-            sendResponse({ success: true });
+            }).catch(() => {});
         }
-        return true;
+        sendResponse({ success: true });
+        return false;
     }
 
 
@@ -964,26 +1006,22 @@ function updateFortressRules(enabled) {
 
 console.log("PhishingShield Service Worker Loaded - " + new Date().toISOString());
 
-// Create context menu - this is critical for MV3
-// Try to create immediately (for cases where extension was already installed)
-try {
-    createContextMenu();
-} catch (e) {
-    console.error("[Oculus] Error creating context menu on startup:", e);
-}
+// MV3 FIX: Context menus must be re-created every time the service worker
+// wakes up because MV3 service workers are ephemeral — onInstalled and
+// onStartup do NOT fire on extension reload or wakeup.
+// The only reliable pattern is to call at the top level AND in lifecycle hooks.
+createContextMenu();
 
-// Create context menu on install/update
+// Also create on install/update (fresh install, Chrome Web Store update)
 chrome.runtime.onInstalled.addListener((details) => {
     console.log("[Oculus] Extension installed/updated:", details.reason);
     createContextMenu();
-
 });
 
-// Also create on browser startup
+// Also create on browser startup (cold boot)
 chrome.runtime.onStartup.addListener(() => {
     console.log("[Oculus] Browser startup");
     createContextMenu();
-
 });
 
 // Initialize XP system on startup
@@ -1318,6 +1356,22 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
             }
         };
     }).filter(rule => rule && rule.condition.urlFilter !== "||undefined"); // Filter invalid rules
+
+    // If DNS Security Shield is disabled, ensure dynamic block rules are cleared and return
+    if (!isDnsShieldActive) {
+        chrome.declarativeNetRequest.getDynamicRules((currentRules) => {
+            const removeIds = currentRules.filter(r => r.id >= 2000).map(r => r.id);
+            if (removeIds.length > 0) {
+                chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: removeIds }, () => {
+                    console.log("[Oculus] Dynamic block rules disabled (DNS Shield inactive)");
+                    if (callback) callback();
+                });
+            } else if (callback) {
+                callback();
+            }
+        });
+        return;
+    }
 
     // Clear old 2000+ rules and add new ones
     chrome.declarativeNetRequest.getDynamicRules((currentRules) => {
@@ -1923,19 +1977,67 @@ function hasHighEntropy(str) {
     return entropy > 3.5; // High entropy = random-looking
 }
 
-// Track pre-scan state (default disabled)
-let preScanEnabled = false;
-chrome.storage.local.get(['enablePreScan'], (r) => {
-    preScanEnabled = r.enablePreScan === true;
+// =============================================================================
+// DNS SECURITY & PRE-SCAN ENGINE (TOGGLE & GATEKEEPER)
+// =============================================================================
+
+// In-memory DNS Shield state for zero-latency gate checks (Layer 3)
+let isDnsShieldActive = true;
+
+// Initialize state from storage (Layer 2)
+chrome.storage.local.get(['isDnsShieldActive', 'enablePreScan'], (r) => {
+    if (r.isDnsShieldActive !== undefined) {
+        isDnsShieldActive = r.isDnsShieldActive === true;
+    } else if (r.enablePreScan !== undefined) {
+        isDnsShieldActive = r.enablePreScan === true;
+    } else {
+        isDnsShieldActive = true; // Default Active
+        chrome.storage.local.set({ isDnsShieldActive: true, enablePreScan: true });
+    }
+    console.log(`[Oculus] 🛡️ DNS Security Engine initialized: ${isDnsShieldActive ? 'ACTIVE' : 'DISABLED'}`);
 });
 
-// Listen for ALL navigations
+// React instantly to storage changes (Instant In-Memory Sync)
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+        if (changes.isDnsShieldActive !== undefined) {
+            isDnsShieldActive = changes.isDnsShieldActive.newValue === true;
+            handleDnsShieldToggle(isDnsShieldActive);
+        } else if (changes.enablePreScan !== undefined && changes.isDnsShieldActive === undefined) {
+            isDnsShieldActive = changes.enablePreScan.newValue === true;
+            handleDnsShieldToggle(isDnsShieldActive);
+        }
+    }
+});
+
+// Manage declarativeNetRequest dynamic rules when toggling ON/OFF (Step 3)
+function handleDnsShieldToggle(isActive) {
+    console.log(`[Oculus] 🛡️ DNS Security Engine toggled: ${isActive ? 'ACTIVATED' : 'DEACTIVATED'}`);
+    if (!isActive) {
+        // When OFF: Remove all active threat blocklist rules so nothing is blocked while disabled
+        chrome.declarativeNetRequest.getDynamicRules((currentRules) => {
+            const blocklistRuleIds = currentRules.filter(r => r.id >= 2000).map(r => r.id);
+            if (blocklistRuleIds.length > 0) {
+                chrome.declarativeNetRequest.updateDynamicRules({
+                    removeRuleIds: blocklistRuleIds
+                }, () => {
+                    console.log(`[Oculus] 🧹 DNS Shield OFF: ${blocklistRuleIds.length} dynamic block rules removed.`);
+                });
+            }
+        });
+    } else {
+        // When ON: Re-populate dynamic blocklist rules
+        updateBlocklistFromStorage();
+    }
+}
+
+// STEP 2: The Execution Gatekeeper (webNavigation.onBeforeNavigate)
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    // Only check top-level navigations (not iframes, images, etc.)
+    // Only check top-level frame navigations
     if (details.frameId !== 0) return;
 
-    // Check if pre-scan is enabled
-    if (!preScanEnabled) return;
+    // Zero-overhead Gate Check: If DNS Security Shield is OFF, exit immediately
+    if (!isDnsShieldActive) return;
 
     const url = details.url;
 
@@ -1949,7 +2051,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
         return;
     }
 
-    // Run heuristic analysis
+    // Run heuristic / pre-flight threat analysis
     const { score, reasons } = analyzeUrlHeuristics(url);
 
     if (score >= 50) {
@@ -1975,10 +2077,66 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.log(`[Oculus] 🔓 URL bypass registered: ${message.url}`);
         sendResponse({ success: true });
     }
-    if (message.type === 'TOGGLE_PRESCAN') {
-        preScanEnabled = message.enabled;
-        console.log(`[Oculus] 🔍 URL Pre-Scan: ${preScanEnabled ? 'ENABLED' : 'DISABLED'}`);
+    if (message.type === 'TOGGLE_DNS_SHIELD' || message.type === 'TOGGLE_PRESCAN') {
+        const isEnabled = message.enabled === true;
+        isDnsShieldActive = isEnabled;
+        chrome.storage.local.set({ isDnsShieldActive: isEnabled, enablePreScan: isEnabled }, () => {
+            handleDnsShieldToggle(isEnabled);
+            sendResponse({ success: true, isDnsShieldActive: isEnabled });
+        });
+        return true;
+    }
+
+    if (message.action === 'toggleHttpsUpgrade') {
+        const enabled = message.enabled === true;
+        chrome.storage.local.set({ httpsUpgradeEnabled: enabled }, () => {
+            updateHttpsUpgradeState(enabled);
+            sendResponse({ success: true, httpsUpgradeEnabled: enabled });
+        });
+        return true;
     }
 });
 
-console.log("[Oculus] 🛡️ Pre-Navigation URL Scanner Active — analyzing ALL URLs before connection");
+// =============================================================================
+// HTTPS-ONLY MODE
+// =============================================================================
+const HTTPS_UPGRADE_RULE_ID = 998; // Reserved for HTTPS-Only upgradeScheme rule
+
+function updateHttpsUpgradeState(enabled) {
+    if (enabled) {
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [HTTPS_UPGRADE_RULE_ID],
+            addRules: [{
+                id: HTTPS_UPGRADE_RULE_ID,
+                priority: 10,
+                action: { type: 'upgradeScheme' },
+                condition: {
+                    urlFilter: 'http://*',
+                    resourceTypes: ['main_frame', 'sub_frame']
+                }
+            }]
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.warn('[Oculus] HTTPS upgrade rule error:', chrome.runtime.lastError.message);
+            } else {
+                console.log('[Oculus] 🔒 HTTPS-Only mode ENABLED');
+            }
+        });
+    } else {
+        chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [HTTPS_UPGRADE_RULE_ID]
+        }, () => {
+            console.log('[Oculus] 🔓 HTTPS-Only mode DISABLED');
+        });
+    }
+}
+
+// Restore HTTPS upgrade state on every service worker start
+chrome.storage.local.get(['httpsUpgradeEnabled'], (res) => {
+    if (res.httpsUpgradeEnabled === true) {
+        updateHttpsUpgradeState(true);
+        console.log('[Oculus] 🔒 HTTPS-Only mode restored on startup');
+    }
+});
+
+console.log("[Oculus] 🛡️ DNS Security & Pre-Navigation Engine Active");

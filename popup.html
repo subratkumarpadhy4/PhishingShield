@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oculus</title>
     <link rel="stylesheet" href="css/popup.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -16,7 +16,7 @@
         <header class="header">
             <div class="brand">
                 <div class="logo-glow">
-                    <img src="images/icon48.png" alt="Logo">
+                    <img src="images/icon48.png" alt="Oculus Logo">
                 </div>
                 <span>Oculus</span>
             </div>
@@ -25,8 +25,7 @@
                 <a href="login.html" target="_blank" id="btn-login" class="btn-micro btn-glow">Login</a>
 
                 <!-- Profile Link (Hidden by default) -->
-                <a href="dashboard.html" target="_blank" id="user-profile-link" class="profile-link"
-                    style="display: none;">
+                <a href="dashboard.html" target="_blank" id="user-profile-link" class="profile-link" style="display: none;">
                     <div class="avatar-circle">
                         <span id="user-initial">U</span>
                     </div>
@@ -44,13 +43,10 @@
         <div id="view-dashboard" class="content-area">
 
             <!-- Incognito Warning (Hidden by default) -->
-            <div id="incognito-warning" class="warning-banner"
-                style="display: none; background: #fff3cd; color: #856404; padding: 12px; margin: 0 0 15px 0; border-radius: 8px; font-size: 13px; border: 1px solid #ffeeba;">
-                <div style="font-weight: 600; margin-bottom: 4px;">⚠️ Incognito Not Protected</div>
-                <div style="margin-bottom: 8px;">Enable "Allow in Incognito" to stay safe.</div>
-                <button id="btn-enable-incognito"
-                    style="background: #856404; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; width: 100%;">Enable
-                    Now</button>
+            <div id="incognito-warning" class="warning-banner" style="display: none;">
+                <div class="warning-banner-title">⚠️ Incognito Not Protected</div>
+                <div class="warning-banner-desc">Enable "Allow in Incognito" in extension settings to stay fully protected.</div>
+                <button id="btn-enable-incognito" class="warning-banner-btn">Enable Now</button>
             </div>
 
             <!-- Hero Status -->
@@ -61,7 +57,10 @@
                 </div>
                 <div class="status-info">
                     <div class="status-title" id="status-text">System Secure</div>
-                    <div class="status-subtitle">Real-time protection active</div>
+                    <div class="status-subtitle">
+                        <span class="status-dot" id="status-dot"></span>
+                        <span id="status-sub">Real-time protection active</span>
+                    </div>
                 </div>
             </div>
 
@@ -85,18 +84,16 @@
             </div>
 
             <!-- COMMUNITY TRUST SECTION -->
-            <div class="trust-card"
-                style="margin: 15px 20px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <div
-                    style="font-size: 12px; color: #6c757d; font-weight: 600; margin-bottom: 10px; display:flex; justify-content:space-between;">
-                    <span id="trust-domain" style="text-transform:lowercase;">...</span>
-                    <span id="trust-score-val" style="color: #0d6efd;">-</span>
+            <div class="trust-card">
+                <div class="trust-header">
+                    <span id="trust-domain" class="trust-domain">...</span>
+                    <span id="trust-score-val" class="trust-score-val">-</span>
                 </div>
                 <div class="vote-actions">
-                    <button id="btn-vote-safe" class="btn-vote">
+                    <button id="btn-vote-safe" class="btn-vote btn-vote-safe">
                         <span class="icon">👍</span> Safe
                     </button>
-                    <button id="btn-vote-unsafe" class="btn-vote">
+                    <button id="btn-vote-unsafe" class="btn-vote btn-vote-unsafe">
                         <span class="icon">👎</span> Unsafe
                     </button>
                 </div>
@@ -106,9 +103,8 @@
             <div class="controls-panel">
                 <div class="control-item">
                     <div class="control-info">
-                        <div class="control-title">URL Pre-Scan 🔍</div>
-                        <div class="control-desc" style="font-size: 10px; color: #6c757d;">Scan URLs before connecting
-                        </div>
+                        <div class="control-title">DNS Security Shield 🛡️</div>
+                        <div class="control-desc" id="dns-shield-desc">Real-time DNS & pre-flight security</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="toggle-prescan">
@@ -119,7 +115,7 @@
                 <div class="control-item">
                     <div class="control-info">
                         <div class="control-title">Shadow Profile 🧬</div>
-                        <div class="control-desc" style="font-size: 10px; color: #6c757d;">Anti-Fingerprinting</div>
+                        <div class="control-desc" id="shadow-profile-desc">Anti-Fingerprinting protection</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="toggle-shadow">
@@ -127,15 +123,25 @@
                     </label>
                 </div>
 
-
                 <div class="control-item fortress-item">
                     <div class="control-info">
                         <div class="control-title">Fortress Mode 🛡️</div>
-                        <div class="control-desc">Zero Trust Security</div>
+                        <div class="control-desc">Zero Trust Security layer</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="toggle-fortress">
                         <span class="slider fortress-slider"></span>
+                    </label>
+                </div>
+
+                <div class="control-item">
+                    <div class="control-info">
+                        <div class="control-title">HTTPS-Only Mode 🔒</div>
+                        <div class="control-desc">Auto-upgrade HTTP to HTTPS</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-https-upgrade">
+                        <span class="slider https-slider"></span>
                     </label>
                 </div>
             </div>
@@ -183,7 +189,7 @@
 
                 <div id="dojo-feedback" class="feedback-msg" style="display: none;"></div>
 
-                <button id="btn-next" class="btn-full btn-primary" style="margin-top: 15px; display: none;">
+                <button id="btn-next" class="btn-full btn-primary" style="margin-top: 14px; display: none;">
                     Next Challenge &rarr;
                 </button>
             </div>

@@ -16,27 +16,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 1. SETTINGS LOGIC ---
+    // --- 1. SETTINGS & DNS SHIELD LOGIC ---
     const togglePreScan = document.getElementById('toggle-prescan');
     const toggleFortress = document.getElementById('toggle-fortress');
     const toggleShadow = document.getElementById('toggle-shadow');
+    const toggleHttps = document.getElementById('toggle-https-upgrade');
 
-    // Load Settings
-    chrome.storage.local.get(['enablePreScan', 'enableFortress', 'logHistoryLimit', 'digital_dna_mode'], (result) => {
-        if (togglePreScan) togglePreScan.checked = result.enablePreScan === true;
+    // Dynamic UI State Updater (Step 1)
+    function updateDnsShieldUI(isActive) {
+        const desc       = document.getElementById('dns-shield-desc');
+        const statusText = document.getElementById('status-text');
+        const statusSub  = document.getElementById('status-sub');
+        const statusDot  = document.getElementById('status-dot');
+        const statusIcon = document.getElementById('status-icon');
+
+        if (desc) {
+            if (isActive) {
+                desc.textContent = "Active • DNS & URL pre-flight protection";
+                desc.style.color = "#34d399";
+            } else {
+                desc.textContent = "Disabled • Pre-flight protection off";
+                desc.style.color = "#64748b";
+            }
+        }
+
+        if (statusText && statusIcon) {
+            if (isActive) {
+                statusText.textContent = "System Secure";
+                if (statusSub) statusSub.textContent = "Real-time protection active";
+                if (statusDot) statusDot.style.background = "#10b981";
+                statusIcon.className = "shield-container secure";
+            } else {
+                statusText.textContent = "Shield Inactive";
+                if (statusSub) statusSub.textContent = "DNS & URL protection disabled";
+                if (statusDot) statusDot.style.background = "#f59e0b";
+                statusIcon.className = "shield-container warning";
+            }
+        }
+    }
+
+    function updateShadowProfileUI(isActive) {
+        const desc = document.getElementById('shadow-profile-desc');
+        if (desc) {
+            if (isActive) {
+                desc.textContent = "Active • Windows 10 / Anti-Fingerprint";
+                desc.style.color = "#34d399";
+            } else {
+                desc.textContent = "Disabled • Anti-Fingerprinting off";
+                desc.style.color = "#94a3b8";
+            }
+        }
+    }
+
+    // Load Settings (Layer 2)
+    chrome.storage.local.get(['isDnsShieldActive', 'enablePreScan', 'enableFortress', 'logHistoryLimit', 'digital_dna_mode', 'httpsUpgradeEnabled'], (result) => {
+        let isDnsActive = true;
+        if (result.isDnsShieldActive !== undefined) {
+            isDnsActive = result.isDnsShieldActive === true;
+        } else if (result.enablePreScan !== undefined) {
+            isDnsActive = result.enablePreScan === true;
+        }
+
+        if (togglePreScan) {
+            togglePreScan.checked = isDnsActive;
+            updateDnsShieldUI(isDnsActive);
+        }
         if (toggleFortress) toggleFortress.checked = result.enableFortress === true;
-        if (toggleShadow) toggleShadow.checked = result.digital_dna_mode === 'always';
+        
+        const isShadowActive = result.digital_dna_mode === 'always';
+        if (toggleShadow) {
+            toggleShadow.checked = isShadowActive;
+            updateShadowProfileUI(isShadowActive);
+        }
 
         const limitInput = document.getElementById('history-limit');
         if (limitInput) limitInput.value = result.logHistoryLimit || 20;
+
+        if (toggleHttps) toggleHttps.checked = result.httpsUpgradeEnabled === true;
     });
 
-    // Save Settings Listeners
+    // Save Settings Listeners (Step 1: Write to storage + Notify Service Worker)
     if (togglePreScan) {
         togglePreScan.addEventListener('change', () => {
             const val = togglePreScan.checked;
-            chrome.storage.local.set({ enablePreScan: val });
-            chrome.runtime.sendMessage({ type: "TOGGLE_PRESCAN", enabled: val });
+            chrome.storage.local.set({ isDnsShieldActive: val, enablePreScan: val });
+            chrome.runtime.sendMessage({ type: "TOGGLE_DNS_SHIELD", enabled: val });
+            updateDnsShieldUI(val);
         });
     }
     const limitInput = document.getElementById('history-limit');
@@ -61,39 +126,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (toggleShadow) {
         toggleShadow.addEventListener('change', () => {
-            const mode = toggleShadow.checked ? 'always' : 'auto';
             const isEnabled = toggleShadow.checked;
+            const mode = isEnabled ? 'always' : 'auto';
 
             // Save state
             chrome.storage.local.set({ digital_dna_mode: mode });
 
-            // Notify Background to Register/Unregister Script
             // Notify Background to Register/Unregister Script (Persistence)
             chrome.runtime.sendMessage({ type: "TOGGLE_SHADOW_PROFILE", enabled: isEnabled });
 
-            // FORCE INJECT NOW (Immediate Feedback)
-            if (isEnabled) {
-                chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                    if (tabs[0]) {
-                        // We use scripting.executeScript to inject into MAIN world instantly
-                        chrome.scripting.executeScript({
-                            target: { tabId: tabs[0].id },
-                            files: ["js/digital_dna.js"],
-                            world: "MAIN"
-                        }).catch(e => console.log("Injection failed:", e));
-                    }
-                });
-            }
-
-            // Reload active tab to verify persistence (wait for background reg)
-            setTimeout(() => {
-                chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                    if (tabs[0]) chrome.tabs.reload(tabs[0].id);
-                });
-            }, 500);
+            updateShadowProfileUI(isEnabled);
         });
     }
 
+    // HTTPS-Only Mode Toggle
+    if (toggleHttps) {
+        toggleHttps.addEventListener('change', () => {
+            const enabled = toggleHttps.checked;
+
+            // Save state directly from popup — do NOT rely on the background
+            // to persist it, because the service worker may be asleep and the
+            // message would fail silently leaving storage unchanged.
+            chrome.storage.local.set({ httpsUpgradeEnabled: enabled }, () => {
+                // After storage is saved, also tell the background to apply the rule
+                chrome.runtime.sendMessage(
+                    { action: 'toggleHttpsUpgrade', enabled },
+                    () => { void chrome.runtime.lastError; } // consume any error
+                );
+            });
+        });
+    }
 
     // --- 2. ADMIN LOGIC (MOVED TO DASHBOARD) ---
 

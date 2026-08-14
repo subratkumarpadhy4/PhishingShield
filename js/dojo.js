@@ -176,7 +176,7 @@ const Dojo = {
             const rest = urlString.substring(protocol.length + domain.length);
 
             // Return HTML with domain bolded
-            return `<span style="opacity:0.6">${protocol}</span><span style="color:#000; font-weight:700;">${domain}</span><span style="opacity:0.6">${rest}</span>`;
+            return `<span style="opacity:0.6">${protocol}</span><span style="color:#ffffff; font-weight:700; text-shadow:0 0 8px rgba(255,255,255,0.3);">${domain}</span><span style="opacity:0.6">${rest}</span>`;
         } catch (e) {
             return urlString;
         }
@@ -209,7 +209,7 @@ const Dojo = {
 
         // Hide previous visual cues
         urlDisplay.style.border = 'none';
-        urlDisplay.style.background = '#f8f9fa';
+        urlDisplay.style.background = 'transparent';
     },
 
     checkAnswer: function (userSaysPhishing) {
@@ -221,57 +221,54 @@ const Dojo = {
             this.streak++;
 
             // --- NEW BALANCED XP FORMULA ---
-            // Base: 5 XP (Harder start)
-            // Streak Bonus: +2 XP per streak count
-            // Difficulty Multiplier: Diff 1 (1x), Diff 2 (1.5x), Diff 3 (2x)
             let rawXp = (5 + (this.streak * 2));
             if (diff === 2) rawXp *= 1.5;
             if (diff === 3) rawXp *= 2;
 
             let xpReward = Math.floor(rawXp);
 
-            let badges = `<span style="background:#e6f4ea; color:#1e7e34; padding:2px 6px; border-radius:4px; font-size:10px; border:1px solid #1e7e34;">Difficulty ${diff}</span>`;
+            let badges = `<span style="background:rgba(16,185,129,0.15); color:#34d399; padding:2px 8px; border-radius:4px; font-size:10px; border:1px solid rgba(16,185,129,0.4);">Difficulty ${diff}</span>`;
 
             // Streak Logic
             if (this.streak > 1) {
-                badges += ` <span style="background:#fff3cd; color:#856404; padding:2px 6px; border-radius:4px; font-size:10px; border:1px solid #856404;">🔥 Streak x${this.streak}</span>`;
+                badges += ` <span style="background:rgba(245,158,11,0.15); color:#fbbf24; padding:2px 8px; border-radius:4px; font-size:10px; border:1px solid rgba(245,158,11,0.4);">🔥 Streak x${this.streak}</span>`;
             }
 
             // Mega Bonus every 5 streaks (instead of 3)
             if (this.streak % 5 === 0) {
                 xpReward += 50;
-                badges += ` <span style="background:#cff4fc; color:#055160; padding:2px 6px; border-radius:4px; font-size:10px; border:1px solid #055160;">🚀 Mega Bonus +50</span>`;
+                badges += ` <span style="background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 8px; border-radius:4px; font-size:10px; border:1px solid rgba(59,130,246,0.4);">🚀 Mega Bonus +50</span>`;
             }
 
             let msg = `
                 <div style="margin-bottom:8px;">${badges}</div>
-                <div style="color: #28a745; font-weight: bold; font-size: 16px; margin-bottom: 4px;">Correct! 🎉</div>
-                <div style="font-size: 13px; color: #555;">${this.currentQuestion.explanation}</div>
-                <div style="margin-top:8px; font-weight:bold; color:#0d6efd;">+${xpReward} XP Earned</div>
+                <div style="color: #34d399; font-weight: bold; font-size: 14px; margin-bottom: 4px;">Correct! 🎉</div>
+                <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">${this.currentQuestion.explanation}</div>
+                <div style="margin-top:8px; font-weight:bold; color:#60a5fa; font-size: 12px;">+${xpReward} XP Earned</div>
             `;
 
             feedbackEl.innerHTML = msg;
-            feedbackEl.style.borderLeft = "4px solid #28a745";
-            feedbackEl.style.background = "#e6f4ea";
+            feedbackEl.style.border = "1px solid rgba(16, 185, 129, 0.4)";
+            feedbackEl.style.background = "rgba(16, 185, 129, 0.1)";
 
-            document.getElementById('dojo-url').style.border = "2px solid #28a745";
-            document.getElementById('dojo-url').style.background = "#e6f4ea";
+            document.getElementById('dojo-url').style.border = "1px solid rgba(16, 185, 129, 0.5)";
+            document.getElementById('dojo-url').style.background = "rgba(16, 185, 129, 0.08)";
 
             this.grantXP(xpReward);
         } else {
             this.streak = 0; // Reset streak
             let msg = `
-                <div style="color: #dc3545; font-weight: bold; font-size: 16px; margin-bottom: 4px;">Oops! Wrong. 💀</div>
-                <div style="font-size: 13px; color: #555;">${this.currentQuestion.explanation}</div>
-                <div style="margin-top:8px; font-size: 12px; color:#888;">Streak lost. Back to 0.</div>
+                <div style="color: #f87171; font-weight: bold; font-size: 14px; margin-bottom: 4px;">Oops! Wrong. 💀</div>
+                <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">${this.currentQuestion.explanation}</div>
+                <div style="margin-top:8px; font-size: 11px; color:#94a3b8;">Streak lost. Back to 0.</div>
             `;
 
             feedbackEl.innerHTML = msg;
-            feedbackEl.style.borderLeft = "4px solid #dc3545";
-            feedbackEl.style.background = "#f8d7da";
+            feedbackEl.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+            feedbackEl.style.background = "rgba(239, 68, 68, 0.1)";
 
-            document.getElementById('dojo-url').style.border = "2px solid #dc3545";
-            document.getElementById('dojo-url').style.background = "#f8d7da";
+            document.getElementById('dojo-url').style.border = "1px solid rgba(239, 68, 68, 0.5)";
+            document.getElementById('dojo-url').style.background = "rgba(239, 68, 68, 0.08)";
         }
 
         feedbackEl.style.display = 'block';
