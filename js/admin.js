@@ -298,22 +298,10 @@ function setupReportFilters() {
 
                     if (!res.ok) throw new Error(data.message || 'Server error');
 
-                    // Update Local Storage Logic (Remove non-banned)
-                    chrome.storage.local.get(['reportedSites'], (storageData) => {
-                        let localReports = storageData.reportedSites || [];
-                        const bannedOnly = localReports.filter(r => r.status === 'banned');
-
-                        chrome.storage.local.set({ reportedSites: bannedOnly, cachedGlobalReports: [] }, () => {
-                            console.log('[Admin] Local reports cleaned up (Kept banned only)');
-                    // Delete Success
-                    btnDeleteAll.innerText = "✅ Deleted";
-                    btnDeleteAll.style.background = "#198754";
-                    btnDeleteAll.style.color = "white";
-                    btnDeleteAll.style.borderColor = "#198754";
-
                     // Update UI immediately
                     allReportsCache = allReportsCache.filter(r => r.status === 'banned');
                     chrome.storage.local.set({ reportedSites: allReportsCache, cachedGlobalReports: allReportsCache }, () => {
+                        console.log('[Admin] Local reports cleaned up (Kept banned only)');
                         renderReports();
                         setTimeout(() => {
                             btnDeleteAll.innerText = originalText;
