@@ -397,7 +397,7 @@ function restoreFromMemory() {
         statusDiv.innerText = "🔍 Checking Server State...";
         document.body.appendChild(statusDiv);
 
-        fetch('https://oculus-eight.vercel.app/api/reports')
+        fetch(`https://oculus-eight.vercel.app/api/reports?t=${Date.now()}`, { cache: 'no-store' })
             .then(res => res.json())
             .then(serverReports => {
                 // map existing IDs for fast lookup
@@ -603,7 +603,7 @@ function loadDashboardData() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-            fetch(`${API_BASE}/reports?t=${Date.now()}`, { signal: controller.signal })
+            fetch(`${API_BASE}/reports?t=${Date.now()}`, { signal: controller.signal, cache: 'no-store' })
                 .then(res => res.json())
                 .then(serverReports => {
                     clearTimeout(timeoutId);
@@ -956,7 +956,7 @@ function loadDashboardData() {
                     alert(`✅ Successful!\n\nDeleted: ${deleteIds.length}\nPreserved (Banned): ${reportsToKeep.length}`);
 
                     // Smooth refresh: fetch fresh data from server to ensure sync
-                    fetch('https://oculus-eight.vercel.app/api/reports')
+                    fetch(`https://oculus-eight.vercel.app/api/reports?t=${Date.now()}`, { cache: 'no-store' })
                         .then(res => res.json())
                         .then(freshReports => {
                             chrome.storage.local.set({ cachedGlobalReports: freshReports }, () => {
@@ -981,7 +981,7 @@ function loadDashboardData() {
     // 1. Fetch Users logic with Auto-Restore
     const fetchUsers = () => {
         // Use Global Sync to ensure we get latest data including XP changes
-        return fetch(`${API_BASE}/users/global-sync?t=${Date.now()}`)
+        return fetch(`${API_BASE}/users/global-sync?t=${Date.now()}`, { cache: 'no-store' })
             .then(res => res.json())
             .then(serverUsers => {
                 console.log("[Admin] Fetched Global Users:", serverUsers.length);
@@ -1591,7 +1591,7 @@ window.unbanSite = async function (url, reportId) {
 
                     alert(`✅ Site Unbanned\n\nUsers can now visit this site.\n\nNote: Other devices will sync within 10 seconds.`);
                     // Smooth refresh: fetch fresh data from server
-                    fetch('https://oculus-eight.vercel.app/api/reports')
+                    fetch(`https://oculus-eight.vercel.app/api/reports?t=${Date.now()}`, { cache: 'no-store' })
                         .then(res => res.json())
                         .then(freshReports => {
                             chrome.storage.local.set({ cachedGlobalReports: freshReports }, () => {

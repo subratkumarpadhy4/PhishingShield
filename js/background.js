@@ -1151,9 +1151,10 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
         }
 
         // Fetch from BOTH Local and Global servers
+        // Add cache busting to ensure we get the absolute latest state
         Promise.allSettled([
-            fetch(API_LOCAL).then(res => res.json()).catch(err => []),
-            fetch(API_GLOBAL).then(res => res.json()).catch(err => [])
+            fetch(API_LOCAL, { cache: 'no-store' }).then(res => res.json()).catch(err => []),
+            fetch(API_GLOBAL, { cache: 'no-store' }).then(res => res.json()).catch(err => [])
         ]).then(results => {
             const localData = results[0].status === 'fulfilled' ? results[0].value : [];
             const globalData = results[1].status === 'fulfilled' ? results[1].value : [];
@@ -1408,6 +1409,10 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
     // Clear old 2000+ rules and add new ones
     chrome.declarativeNetRequest.getDynamicRules((currentRules) => {
         const removeIds = currentRules.filter(r => r.id >= 2000).map(r => r.id);
+        
+        console.log(`[Oculus] 🔄 Updating Blocklist... Removing ${removeIds.length} old rules. Adding ${newRules.length} new rules.`);
+        console.log(`[Oculus] 📄 New Rules Payload:`, JSON.stringify(newRules, null, 2));
+
         chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: removeIds,
             addRules: newRules
