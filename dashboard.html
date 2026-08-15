@@ -1266,7 +1266,12 @@
 
         <!-- TAB: MY REPORTS -->
         <div id="tab-reports" class="tab-content">
-            <h2 class="section-title">📢 My Reported Sites</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="section-title" style="margin: 0;">📢 My Reported Sites</h2>
+                <button id="refresh-my-reports" class="btn-modal btn-secondary"
+                    style="width: auto; padding: 8px 16px; font-size: 12px;">🔄 Refresh Status</button>
+            </div>
+            
             <div class="stat-card" style="padding: 0; overflow: hidden;">
                 <div class="table-container" style="padding: 2px;">
                     <table class="log-table">
@@ -1288,10 +1293,6 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-            <div style="margin-top: 15px; text-align: right;">
-                <button id="refresh-my-reports" class="btn-modal btn-secondary"
-                    style="width: auto; padding: 8px 16px; font-size: 12px;">🔄 Refresh Status</button>
             </div>
         </div>
 

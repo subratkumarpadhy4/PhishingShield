@@ -311,6 +311,24 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
                 // Use Shared Submission Logic (Offline Sync Supported)
                 submitReport(reportPayload, (res) => {
+                    if (!res.success) {
+                        if (tab && tab.id) {
+                            const msg = res.message || "Already reported.";
+                            chrome.tabs.sendMessage(tab.id, {
+                                type: "SHOW_NOTIFICATION",
+                                title: "Notice",
+                                message: msg
+                            }).catch(() => {
+                                chrome.scripting.executeScript({
+                                    target: { tabId: tab.id },
+                                    func: (m) => alert("Notice: " + m),
+                                    args: [msg]
+                                });
+                            });
+                        }
+                        return; // Do NOT add XP
+                    }
+
                     // Success (or Queued)
                     console.log("[Oculus] Context Menu Report Handled:", res);
 
@@ -389,15 +407,16 @@ chrome.runtime.onConnect.addListener((port) => {
  * reliable report submission with offline queueing
  */
 function submitReport(payload, sendResponse) {
-    // 1. Always save to local history (User Experience)
-    chrome.storage.local.get(['reportedSites'], (res) => {
-        const logs = res.reportedSites || [];
-        // Avoid duplicates in history
-        if (!logs.some(r => r.id === payload.id)) {
-            logs.push(payload);
-            chrome.storage.local.set({ reportedSites: logs });
-        }
-    });
+    // Helper to save to local history ONLY on success or queue
+    const saveToLocalHistory = () => {
+        chrome.storage.local.get(['reportedSites'], (res) => {
+            const logs = res.reportedSites || [];
+            if (!logs.some(r => r.id === payload.id)) {
+                logs.push(payload);
+                chrome.storage.local.set({ reportedSites: logs });
+            }
+        });
+    };
 
     const tryGlobal = () => {
         fetch(GLOBAL_API, {
@@ -415,12 +434,14 @@ function submitReport(payload, sendResponse) {
                     throw new Error(`HTTP ${res.status}`);
                 }
                 console.log("[Oculus] ✅ Report Synced to Global Server:", data);
+                saveToLocalHistory();
                 if (sendResponse) sendResponse({ success: true, data: data });
             })
             .catch(err => {
                 console.warn("[Oculus] ⚠️ Global Sync Failed. Queuing report...", err);
                 // Queue for later
                 queueReportForSync(payload);
+                saveToLocalHistory();
                 if (sendResponse) sendResponse({ success: true, queued: true }); // treat as success to client
             });
     };
@@ -451,6 +472,7 @@ function submitReport(payload, sendResponse) {
         })
         .then(data => {
             console.log("[Oculus] ✅ Report Sent to LOCAL Server:", data);
+            saveToLocalHistory();
             if (sendResponse) sendResponse({ success: true, data: data });
 
             // Backup: Fire-and-forget to Global as well (Dual Write for consistency)
@@ -708,7 +730,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 status: 'pending'
             };
 
-            submitReport(reportPayload, sendResponse);
+            submitReport(reportPayload, (res) => {
+                if (res.success) {
+                    updateXP(10);
+                }
+                sendResponse(res);
+            });
         });
         return true; // Keep channel open
     }

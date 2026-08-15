@@ -279,14 +279,26 @@ function setupReportFilters() {
         btnDeleteAll.onclick = async (e) => {
             e.preventDefault();
 
-            if (confirm("Are you sure you want to delete ALL non-banned reports?\n\nThis action will clear pending and ignored reports but keep Banned sites intact.")) {
+            const filterMap = {
+                'all': 'ALL non-banned',
+                'pending': 'PENDING',
+                'ignored': 'IGNORED'
+            };
+            const targetStatus = currentReportFilter !== 'all' ? currentReportFilter : null;
+            const targetName = filterMap[currentReportFilter] || currentReportFilter;
+
+            if (confirm(`Are you sure you want to delete ${targetName} reports?\n\nThis action cannot be undone.`)) {
                 const originalText = btnDeleteAll.innerText;
                 btnDeleteAll.innerText = "Deleting...";
                 btnDeleteAll.disabled = true;
 
                 try {
                     // Update Server
-                    const res = await fetch(`${API_BASE}/reports/cleanup`, { method: 'POST' });
+                    const res = await fetch(`${API_BASE}/reports/cleanup`, { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: targetStatus || 'all' })
+                    });
 
                     // Check for JSON response
                     const contentType = res.headers.get("content-type");
@@ -299,9 +311,13 @@ function setupReportFilters() {
                     if (!res.ok) throw new Error(data.message || 'Server error');
 
                     // Update UI immediately
-                    allReportsCache = allReportsCache.filter(r => r.status === 'banned');
+                    if (targetStatus) {
+                        allReportsCache = allReportsCache.filter(r => (r.status || 'pending') !== targetStatus);
+                    } else {
+                        allReportsCache = allReportsCache.filter(r => r.status === 'banned');
+                    }
                     chrome.storage.local.set({ reportedSites: allReportsCache, cachedGlobalReports: allReportsCache }, () => {
-                        console.log('[Admin] Local reports cleaned up (Kept banned only)');
+                        console.log(`[Admin] Local reports cleaned up (Removed ${targetStatus || 'all non-banned'})`);
                         renderReports();
                         setTimeout(() => {
                             btnDeleteAll.innerText = originalText;
@@ -1158,7 +1174,7 @@ function renderReports(reports) {
     }
     tbody.innerHTML = '';
 
-    // Use Cache or provided reports (but do NOT overwrite cache implicitly)
+    // Use Cache or provided reports
     let dataToRender = reports || allReportsCache || [];
 
     // Filter out invalid reports
@@ -1179,84 +1195,106 @@ function renderReports(reports) {
         return;
     }
 
-    console.log('[Admin] Rendering', dataToRender.length, 'reports');
-
-    // Sort by Date (newest first)
-    const sorted = [...dataToRender].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-    sorted.forEach((r, index) => {
-        // Validate report has required fields
-        if (!r || (!r.url && !r.hostname)) {
-            console.warn('[Admin] Skipping invalid report:', r);
-            return; // Skip invalid reports
-        }
-
-        const date = r.timestamp ? new Date(r.timestamp).toLocaleDateString() : 'Unknown';
-
-        // Render Logic for Report Row
-        const status = r.status || 'pending';
-
-        // Escape HTML to prevent XSS
-        const escapeHtml = (text) => {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = String(text);
-            return div.innerHTML;
-        };
-
-        let statusBadge = '<span class="badge" style="background:#ffc107; color:black">PENDING</span>';
-
-        // Safely get URL - try multiple sources
-        const reportUrl = r.url || r.hostname || 'Unknown URL';
-        const escapedUrl = escapeHtml(reportUrl);
-        const escapedId = escapeHtml(r.id || '');
-
-        // Safely get hostname
+    // 1. Group by Hostname
+    const groupedReports = {};
+    dataToRender.forEach(r => {
         let hostname = r.hostname;
-        if (!hostname && reportUrl !== 'Unknown URL') {
+        if (!hostname) {
             try {
-                hostname = new URL(reportUrl).hostname;
+                hostname = new URL(r.url).hostname;
             } catch (e) {
-                hostname = reportUrl; // Fallback to full URL if parsing fails
+                hostname = r.url; // fallback
             }
         }
-        const escapedHostname = escapeHtml(hostname || reportUrl);
+        
+        // Strip www. for consistent grouping
+        if (hostname.startsWith('www.')) hostname = hostname.replace(/^www\./, '');
 
-        // Action buttons based on status
-        let actionBtn = '';
-        if (status === 'banned') {
+        if (!groupedReports[hostname]) {
+            groupedReports[hostname] = [];
+        }
+        groupedReports[hostname].push(r);
+    });
+
+    console.log('[Admin] Rendering', Object.keys(groupedReports).length, 'grouped domains');
+
+    // 2. Convert to array and sort by most recent timestamp in group
+    const sortedGroups = Object.values(groupedReports).sort((groupA, groupB) => {
+        const maxA = Math.max(...groupA.map(r => r.timestamp || 0));
+        const maxB = Math.max(...groupB.map(r => r.timestamp || 0));
+        return maxB - maxA; // newest first
+    });
+
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    };
+
+    sortedGroups.forEach((group, index) => {
+        // Use the most recent report as the representative
+        group.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        const r = group[0];
+        
+        const date = r.timestamp ? new Date(r.timestamp).toLocaleDateString() : 'Unknown';
+
+        // Group Status Logic: If any is banned, group is banned. If all ignored, ignored. Else pending.
+        let groupStatus = 'pending';
+        if (group.some(x => x.status === 'banned')) groupStatus = 'banned';
+        else if (group.every(x => x.status === 'ignored')) groupStatus = 'ignored';
+
+        let statusBadge = '<span class="badge" style="background:#ffc107; color:black">PENDING</span>';
+        if (groupStatus === 'banned') {
             statusBadge = '<span class="badge" style="background:#dc3545; color:white">🚫 BANNED</span>';
-        } else if (status === 'ignored') {
+        } else if (groupStatus === 'ignored') {
             statusBadge = '<span class="badge" style="background:#6c757d; color:white">IGNORED</span>';
         }
 
+        const reportUrl = r.url || r.hostname || 'Unknown URL';
+        const escapedUrl = escapeHtml(reportUrl);
+        
+        // Comma-separated list of IDs for the action buttons
+        const escapedIds = escapeHtml(group.map(x => x.id).join(','));
+
+        let hostname = r.hostname;
+        if (!hostname && reportUrl !== 'Unknown URL') {
+            try { hostname = new URL(reportUrl).hostname; } catch (e) { hostname = reportUrl; }
+        }
+        const escapedHostname = escapeHtml(hostname || reportUrl);
+
         // Unified Action: Always show "View Details" to open Modal
-        actionBtn = `
-            <button class="btn btn-outline action-open-modal" data-id="${escapedId}" style="padding:4px 8px; font-size:12px;">View Details</button>
+        const actionBtn = `
+            <button class="btn btn-outline action-open-modal" data-ids="${escapedIds}" style="padding:4px 8px; font-size:12px;">View Details</button>
         `;
 
-        // Parse reporter to separate Name and Email if possible for better display
+        // Reporter display
         let reporterDisplay = r.reporterName || r.reporter || 'Anonymous';
         let reporterEmail = r.reporterEmail || '';
 
-        // If format is "Name (email)", we can bold the name (legacy fallback)
         if (!r.reporterName && reporterDisplay.includes('(')) {
             const parts = reporterDisplay.split('(');
             const name = parts[0].trim();
             const email = parts[1].replace(')', '').trim();
             reporterDisplay = `<strong>${escapeHtml(name)}</strong> <span style="font-size:12px; color:#6c757d;">(${escapeHtml(email)})</span>`;
         } else if (r.reporterName && r.reporterEmail) {
-            // Modern format with split fields
             reporterDisplay = `<strong>${escapeHtml(r.reporterName)}</strong> <span style="font-size:12px; color:#6c757d;">(${escapeHtml(r.reporterEmail)})</span>`;
         } else {
-            reporterDisplay = escapeHtml(reporterDisplay);
+            reporterDisplay = `<strong>${escapeHtml(reporterDisplay)}</strong>`;
+        }
+
+        // Add badge if multiple users reported
+        const uniqueReporters = new Set(group.map(x => x.reporterEmail || x.reporter || 'Anonymous'));
+        if (uniqueReporters.size > 1) {
+            reporterDisplay = `<strong>Multiple Users</strong> <span style="background:#25D366; color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; margin-left:5px;">${uniqueReporters.size}</span>`;
         }
 
         const tr = document.createElement('tr');
-        // Truncate URL if too long for display
-        const displayUrl = escapedUrl.length > 50 ? escapedUrl.substring(0, 47) + '...' : escapedUrl;
         tr.innerHTML = `
-            <td style="font-family:monospace; color:#0d6efd;" title="${escapedUrl}">${displayUrl}</td>
+            <td>
+                <div style="font-weight: 500; color: #1e293b;">${escapedHostname}</div>
+                <div style="font-size: 12px; color: #64748b; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapedUrl}">${escapedUrl}</div>
+            </td>
             <td>${reporterDisplay}</td>
             <td>${date}</td>
             <td>${statusBadge}</td>
@@ -1291,26 +1329,17 @@ function renderReports(reports) {
         const modalBtn = tr.querySelector('.action-open-modal');
         if (modalBtn) {
             modalBtn.addEventListener('click', () => {
-                const reportId = modalBtn.dataset.id || '';
-                console.log('[Admin] Looking for report with ID:', reportId);
-                console.log('[Admin] Cache size:', allReportsCache.length);
-
-                // Try to find in cache first
-                let report = allReportsCache.find(x => x.id === reportId);
-
-                // Fallback: if not found in cache, try the original report object
-                if (!report && r && r.id === reportId) {
-                    console.log('[Admin] Report not in cache, using original object');
-                    report = r;
+                const reportIdsString = modalBtn.dataset.ids || '';
+                const reportIds = reportIdsString.split(',');
+                console.log('[Admin] Looking for reports with IDs:', reportIds);
+                
+                const groupReports = allReportsCache.filter(x => reportIds.includes(x.id));
+                if (groupReports.length > 0) {
+                    openReportModal(groupReports);
+                } else {
+                    console.warn('[Admin] Group reports not found by IDs, using fallback');
+                    openReportModal([r]); // fallback to the representative report
                 }
-
-                // Final fallback: just use the original report
-                if (!report) {
-                    console.warn('[Admin] Report not found by ID, using fallback');
-                    report = r;
-                }
-
-                openReportModal(report);
             });
         }
 
@@ -1346,8 +1375,10 @@ function renderReports(reports) {
 }
 
 // Global function to ban a harmful site
-window.banSite = async function (url, reportId) {
-    console.log('[Admin] banSite called with:', { url, reportId });
+window.banSite = async function (url, reportIdOrIds) {
+    console.log('[Admin] banSite called with:', { url, reportIdOrIds });
+    
+    const reportIds = Array.isArray(reportIdOrIds) ? reportIdOrIds : [reportIdOrIds];
 
     try {
         let hostname;
@@ -1366,32 +1397,63 @@ window.banSite = async function (url, reportId) {
         console.log('[Admin] User confirmed ban, proceeding...');
 
         // Update status on server first and WAIT for response
-        // Use LOCAL server first
-        const response = await fetch(`${API_BASE}/reports/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: reportId, status: 'banned' })
-        });
+        await Promise.all(reportIds.map(async (id) => {
+            const response = await fetch(`${API_BASE}/reports/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: 'banned' })
+            });
 
-        const resData = await response.json();
+            const resData = await response.json();
 
-        if (!response.ok || !resData.success) {
-            throw new Error(resData.message || 'Server returned error');
-        }
+            if (!response.ok || !resData.success) {
+                console.warn('[Admin] Server returned error for ID:', id, resData.message);
+                throw new Error(resData.message || 'Server returned error');
+            }
+        }));
 
         console.log('[Admin] Server updated successfully, status set to banned');
 
         // Update cached global reports to reflect the ban immediately
         chrome.storage.local.get(['cachedGlobalReports'], (cacheData) => {
             const cachedReports = cacheData.cachedGlobalReports || [];
-            const reportIndex = cachedReports.findIndex(r => r.id === reportId || r.url === url);
-            if (reportIndex !== -1) {
-                cachedReports[reportIndex].status = 'banned';
-                cachedReports[reportIndex].bannedAt = Date.now();
-            } else {
+            
+            // Helper to normalize URLs for comparison
+            const normalizeUrl = (u) => {
+                if (!u) return '';
+                try {
+                    let normalized = u.trim().toLowerCase();
+                    normalized = normalized.replace(/^https?:\/\//, '');
+                    normalized = normalized.replace(/\/+$/, '');
+                    return normalized;
+                } catch (e) {
+                    return u.trim().toLowerCase();
+                }
+            };
+
+            const normalizedUrl = normalizeUrl(url);
+            const normalizedHostname = normalizeUrl(hostname);
+
+            let addedToCache = false;
+
+            cachedReports.forEach((report, index) => {
+                const rUrl = normalizeUrl(report.url);
+                const rHostname = normalizeUrl(report.hostname);
+                
+                if (reportIds.includes(report.id) || 
+                    rUrl === normalizedUrl || rUrl === normalizedHostname ||
+                    rHostname === normalizedUrl || rHostname === normalizedHostname) {
+                    
+                    cachedReports[index].status = 'banned';
+                    cachedReports[index].bannedAt = Date.now();
+                    addedToCache = true;
+                }
+            });
+
+            if (!addedToCache) {
                 // Add to cache if not present
                 cachedReports.push({
-                    id: reportId,
+                    id: reportIds[0], // just use first id
                     url: url,
                     hostname: hostname,
                     status: 'banned',
@@ -1409,14 +1471,24 @@ window.banSite = async function (url, reportId) {
             let blacklist = data.blacklist || [];
 
             // 1. Update Report Status in local storage
-            const reportIndex = reports.findIndex(r => r.id === reportId || r.url === url);
-            if (reportIndex !== -1) {
-                reports[reportIndex].status = 'banned';
-                reports[reportIndex].bannedAt = Date.now();
-            } else {
+            let addedToReports = false;
+            reports.forEach((r, index) => {
+                const rUrl = normalizeUrl(r.url);
+                const rHostname = normalizeUrl(r.hostname);
+                
+                if (reportIds.includes(r.id) || 
+                    rUrl === normalizedUrl || rUrl === normalizedHostname ||
+                    rHostname === normalizedUrl || rHostname === normalizedHostname) {
+                    reports[index].status = 'banned';
+                    reports[index].bannedAt = Date.now();
+                    addedToReports = true;
+                }
+            });
+
+            if (!addedToReports) {
                 // If not in local, add it
                 reports.push({
-                    id: reportId,
+                    id: reportIds[0],
                     url: url,
                     hostname: hostname,
                     status: 'banned',
@@ -1492,47 +1564,98 @@ window.banSite = async function (url, reportId) {
 };
 
 // Global function to ignore a report (mark as false positive)
-window.ignoreReport = async function (url, reportId) {
+window.ignoreReport = async function (url, reportIdOrIds) {
     if (!confirm(`Mark this report as FALSE POSITIVE?\n\n${url}\n\nThis will mark the site as safe and ignore the report.`)) return;
+
+    const reportIds = Array.isArray(reportIdOrIds) ? reportIdOrIds : [reportIdOrIds];
 
     try {
         // Update status on server AND WAIT for it
-        // Use LOCAL server first
-        const response = await fetch(`${API_BASE}/reports/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: reportId, status: 'ignored' })
-        });
-        const resData = await response.json();
+        await Promise.all(reportIds.map(async (id) => {
+            const response = await fetch(`${API_BASE}/reports/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: 'ignored' })
+            });
 
-        if (!response.ok || !resData.success) {
-            throw new Error(resData.message || 'Server returned error');
-        }
+            const resData = await response.json();
+            if (!response.ok || !resData.success) {
+                console.warn('[Admin] Server returned error for ID:', id, resData.message);
+                throw new Error(resData.message || 'Server returned error');
+            }
+        }));
+
+        // Update cached global reports to reflect the ignore immediately
+        chrome.storage.local.get(['cachedGlobalReports'], (cacheData) => {
+            const cachedReports = cacheData.cachedGlobalReports || [];
+            
+            // Helper to normalize URLs for comparison
+            const normalizeUrl = (u) => {
+                if (!u) return '';
+                try {
+                    let normalized = u.trim().toLowerCase();
+                    normalized = normalized.replace(/^https?:\/\//, '');
+                    normalized = normalized.replace(/\/+$/, '');
+                    return normalized;
+                } catch (e) {
+                    return u.trim().toLowerCase();
+                }
+            };
+
+            const normalizedUrl = normalizeUrl(url);
+
+            cachedReports.forEach((report, index) => {
+                const rUrl = normalizeUrl(report.url);
+                if (reportIds.includes(report.id) || rUrl === normalizedUrl) {
+                    cachedReports[index].status = 'ignored';
+                }
+            });
+            chrome.storage.local.set({ cachedGlobalReports: cachedReports });
+        });
+
+        // Local UI update
+        chrome.storage.local.get(['reportedSites'], (data) => {
+            let reports = data.reportedSites || [];
+            
+            const normalizeUrl = (u) => {
+                if (!u) return '';
+                try {
+                    let normalized = u.trim().toLowerCase();
+                    normalized = normalized.replace(/^https?:\/\//, '');
+                    normalized = normalized.replace(/\/+$/, '');
+                    return normalized;
+                } catch (e) {
+                    return u.trim().toLowerCase();
+                }
+            };
+            const normalizedUrl = normalizeUrl(url);
+
+            reports.forEach((r, index) => {
+                const rUrl = normalizeUrl(r.url);
+                if (reportIds.includes(r.id) || rUrl === normalizedUrl) {
+                    reports[index].status = 'ignored';
+                    reports[index].ignoredAt = Date.now();
+                }
+            });
+            
+            chrome.storage.local.set({ reportedSites: reports }, () => {
+                alert(`✓ Report Ignored\n\nThis site has been marked as safe.`);
+                loadDashboardData();
+            });
+        });
 
         console.log("[Admin] Server ignored report successfully.");
     } catch (err) {
         console.error('Server update failed:', err);
         alert("Warning: Could not update server. Updating locally only.");
     }
-
-    // Now update UI
-    chrome.storage.local.get(['reportedSites'], (data) => {
-        let reports = data.reportedSites || [];
-        const reportIndex = reports.findIndex(r => r.id === reportId || r.url === url);
-        if (reportIndex !== -1) {
-            reports[reportIndex].status = 'ignored';
-            reports[reportIndex].ignoredAt = Date.now();
-            chrome.storage.local.set({ reportedSites: reports }, () => {
-                alert(`✓ Report Ignored\n\nThis site has been marked as safe.`);
-                loadDashboardData();
-            });
-        }
-    });
 };
 
 // Global function to unban a site
-window.unbanSite = async function (url, reportId) {
-    console.log('[Admin] unbanSite called with:', { url, reportId });
+window.unbanSite = async function (url, reportIdOrIds) {
+    console.log('[Admin] unbanSite called with:', { url, reportIdOrIds });
+    
+    const reportIds = Array.isArray(reportIdOrIds) ? reportIdOrIds : [reportIdOrIds];
 
     try {
         let hostname;
@@ -1551,18 +1674,20 @@ window.unbanSite = async function (url, reportId) {
         console.log('[Admin] User confirmed unban, proceeding...');
 
         // Update status on server and WAIT for response
-        // Use LOCAL server first
-        const response = await fetch(`${API_BASE}/reports/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: reportId, status: 'pending' })
-        });
+        await Promise.all(reportIds.map(async (id) => {
+            const response = await fetch(`${API_BASE}/reports/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: 'pending' })
+            });
 
-        const resData = await response.json();
+            const resData = await response.json();
 
-        if (!response.ok || !resData.success) {
-            throw new Error(resData.message || 'Server returned error');
-        }
+            if (!response.ok || !resData.success) {
+                console.warn('[Admin] Server returned error for ID:', id, resData.message);
+                throw new Error(resData.message || 'Server returned error');
+            }
+        }));
 
         console.log('[Admin] Server updated successfully, status set to pending');
 
@@ -1588,17 +1713,13 @@ window.unbanSite = async function (url, reportId) {
 
             // Find and update all matching reports (by ID or normalized URL)
             cachedReports.forEach((report, index) => {
-                if (report.id === reportId) {
+                const rUrl = normalizeUrl(report.url);
+                const rHostname = normalizeUrl(report.hostname);
+                if (reportIds.includes(report.id) || 
+                    rUrl === normalizedUrl || rUrl === normalizedHostname ||
+                    rHostname === normalizedUrl || rHostname === normalizedHostname) {
                     cachedReports[index].status = 'pending';
                     delete cachedReports[index].bannedAt;
-                } else {
-                    const rUrl = normalizeUrl(report.url);
-                    const rHostname = normalizeUrl(report.hostname);
-                    if (rUrl === normalizedUrl || rUrl === normalizedHostname ||
-                        rHostname === normalizedUrl || rHostname === normalizedHostname) {
-                        cachedReports[index].status = 'pending';
-                        delete cachedReports[index].bannedAt;
-                    }
                 }
             });
 
@@ -1627,15 +1748,16 @@ window.unbanSite = async function (url, reportId) {
             const normalizedHostname = normalizeUrl(hostname);
 
             // Update report status - check by ID first, then URL (normalized)
-            const reportIndex = reports.findIndex(r => {
-                if (r.id === reportId) return true;
+            reports.forEach((r, index) => {
                 const rUrl = normalizeUrl(r.url);
-                return rUrl === normalizedUrl || rUrl === normalizedHostname;
+                const rHostname = normalizeUrl(r.hostname);
+                if (reportIds.includes(r.id) || 
+                    rUrl === normalizedUrl || rUrl === normalizedHostname ||
+                    rHostname === normalizedUrl || rHostname === normalizedHostname) {
+                    reports[index].status = 'pending';
+                    delete reports[index].bannedAt;
+                }
             });
-            if (reportIndex !== -1) {
-                reports[reportIndex].status = 'pending';
-                delete reports[reportIndex].bannedAt;
-            }
 
             // Remove from blacklist - check all variations (with/without protocol, trailing slashes, etc.)
             blacklist = blacklist.filter(item => {
@@ -2058,30 +2180,143 @@ function renderLogs(logs) {
     });
 }
 
-function openReportModal(report) {
+function openReportModal(reportsOrReport) {
     const modal = document.getElementById('report-modal');
     if (!modal) return;
 
-    // Defensive check: ensure report exists
+    const isGroup = Array.isArray(reportsOrReport);
+    const groupReports = isGroup ? reportsOrReport : [reportsOrReport];
+    const report = groupReports[0];
+
+    // Defensive check
     if (!report || !report.url) {
         console.error('[Admin] openReportModal called with invalid report:', report);
-        console.log('[Admin] allReportsCache has', allReportsCache.length, 'reports');
         alert('Error: Report data not found. Please refresh the page and try again.');
         return;
     }
 
-    console.log('[Admin] Opening modal for report:', report.id, report.url);
+    console.log(`[Admin] Opening modal for ${groupReports.length} reports, URL: ${report.url}`);
 
     // Populate Data
     document.getElementById('report-modal-url').textContent = report.url;
-    document.getElementById('report-modal-reporter').textContent = report.reporter || 'Anonymous';
-    document.getElementById('report-modal-date').textContent = new Date(report.timestamp).toLocaleString();
+    
+    // Aggregate reporters with clear formatting, ensuring uniqueness
+    const reporterMap = new Map();
+    
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    };
+
+    // Sort descending by timestamp so we process the most recent first
+    const sortedGroupReports = [...groupReports].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    sortedGroupReports.forEach(r => {
+        let reporterDisplay = r.reporterName || r.reporter || 'Anonymous';
+        let email = r.reporterEmail || r.reporter || 'anonymous';
+        
+        // Skip if we already added a card for this exact user
+        if (reporterMap.has(email)) return;
+
+        let dateStr = r.timestamp ? new Date(r.timestamp).toLocaleString() : 'Unknown';
+        let html = '';
+        if (!r.reporterName && reporterDisplay.includes('(')) {
+            const parts = reporterDisplay.split('(');
+            const name = parts[0].trim();
+            const extractedEmail = parts[1].replace(')', '').trim();
+            html = `<div style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+                    <strong style="color: #0f172a;">${escapeHtml(name)}</strong>
+                    <span style="font-size:11px; color:#94a3b8;">${dateStr}</span>
+                </div>
+                <div style="font-size:12px; color:#64748b;">${escapeHtml(extractedEmail)}</div>
+            </div>`;
+        } else if (r.reporterName && r.reporterEmail) {
+            html = `<div style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+                    <strong style="color: #0f172a;">${escapeHtml(r.reporterName)}</strong>
+                    <span style="font-size:11px; color:#94a3b8;">${dateStr}</span>
+                </div>
+                <div style="font-size:12px; color:#64748b;">${escapeHtml(r.reporterEmail)}</div>
+            </div>`;
+        } else {
+            html = `<div style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color: #0f172a;">${escapeHtml(reporterDisplay)}</strong>
+                    <span style="font-size:11px; color:#94a3b8;">${dateStr}</span>
+                </div>
+            </div>`;
+        }
+        reporterMap.set(email, html);
+    });
+
+    const uniqueReportersSet = new Set(groupReports.map(x => x.reporterEmail || x.reporter || 'Anonymous'));
+    const reportersCount = uniqueReportersSet.size;
+    
+    // Instead of showing inline, just show a button to open details
+    const summaryHtml = `
+        <div style="display:flex; align-items:center; gap:10px; margin-top: 4px;">
+            <span style="font-weight:600; color:#0f172a;">${reportersCount} User${reportersCount > 1 ? 's' : ''}</span>
+            <button id="btn-view-reporters" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px; cursor: pointer; border-radius: 4px;">View Details</button>
+        </div>
+    `;
+    
+    document.getElementById('report-modal-reporter').innerHTML = summaryHtml;
+    
+    // Attach event listener to open the secondary popup
+    setTimeout(() => {
+        const btnView = document.getElementById('btn-view-reporters');
+        if (btnView) {
+            btnView.onclick = () => {
+                const secModal = document.createElement('div');
+                secModal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(2px);';
+                
+                const content = document.createElement('div');
+                content.style.cssText = 'background:white; border-radius:12px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; padding:24px; position:relative; box-shadow:0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.2s ease-out;';
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.innerHTML = '&times;';
+                closeBtn.style.cssText = 'position:absolute; top:15px; right:15px; background:none; border:none; font-size:24px; cursor:pointer; color:#64748b; line-height:1; padding:0;';
+                closeBtn.onclick = () => secModal.remove();
+                
+                const title = document.createElement('h3');
+                title.style.cssText = 'margin-top:0; margin-bottom:15px; color:#0f172a; font-size:16px; font-weight:600;';
+                title.textContent = 'Reporter Details';
+                
+                const list = document.createElement('div');
+                list.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
+                list.innerHTML = Array.from(reporterMap.values()).join('');
+                
+                content.appendChild(closeBtn);
+                content.appendChild(title);
+                content.appendChild(list);
+                secModal.appendChild(content);
+                
+                // Close on outside click
+                secModal.addEventListener('click', (e) => {
+                    if (e.target === secModal) secModal.remove();
+                });
+                
+                document.body.appendChild(secModal);
+            };
+        }
+    }, 0);
+    
+    // Use most recent date for the main label
+    const mostRecent = Math.max(...groupReports.map(r => r.timestamp || 0));
+    document.getElementById('report-modal-date').innerHTML = groupReports.length > 1 ? `<span style="color:#64748b; font-size:12px;">Most recent:</span><br>${new Date(mostRecent).toLocaleString()}` : new Date(mostRecent).toLocaleString();
+
+    // Group Status: Banned if any are banned, ignored if all ignored, else pending
+    let groupStatus = 'pending';
+    if (groupReports.some(x => x.status === 'banned')) groupStatus = 'banned';
+    else if (groupReports.every(x => x.status === 'ignored')) groupStatus = 'ignored';
 
     // Status Badge
     const statusContainer = document.getElementById('report-modal-status-container');
-    const status = report.status || 'pending';
-    if (status === 'banned') statusContainer.innerHTML = '<span class="badge" style="background:#dc3545; color:white">🚫 BANNED</span>';
-    else if (status === 'ignored') statusContainer.innerHTML = '<span class="badge" style="background:#6c757d; color:white">IGNORED</span>';
+    if (groupStatus === 'banned') statusContainer.innerHTML = '<span class="badge" style="background:#dc3545; color:white">🚫 BANNED</span>';
+    else if (groupStatus === 'ignored') statusContainer.innerHTML = '<span class="badge" style="background:#6c757d; color:white">IGNORED</span>';
     else statusContainer.innerHTML = '<span class="badge" style="background:#ffc107; color:black">PENDING REVIEW</span>';
 
     // --- AI ANALYSIS LOGIC ---
@@ -2311,43 +2546,45 @@ function openReportModal(report) {
     // Footer Actions
     const footer = document.getElementById('report-modal-footer');
     footer.innerHTML = '';
+    
+    const allIds = groupReports.map(r => r.id);
 
     // Create Buttons dynamically
     // 1. BAN (if not already banned)
-    if (status !== 'banned') {
+    if (groupStatus !== 'banned') {
         const banBtn = document.createElement('button');
         banBtn.className = 'btn';
         banBtn.style.background = '#dc3545';
         banBtn.style.color = 'white';
-        banBtn.innerHTML = '🚫 Ban Site';
+        banBtn.innerHTML = `🚫 Ban Site${allIds.length > 1 ? ` (${allIds.length})` : ''}`;
         banBtn.onclick = () => {
-            window.banSite(report.url, report.id);
+            window.banSite(report.url, allIds);
             modal.classList.add('hidden');
         };
         footer.appendChild(banBtn);
     }
 
     // 2. UNBAN (if banned)
-    if (status === 'banned') {
+    if (groupStatus === 'banned') {
         const unbanBtn = document.createElement('button');
         unbanBtn.className = 'btn';
         unbanBtn.style.background = '#198754';
         unbanBtn.style.color = 'white';
-        unbanBtn.textContent = '✅ Unban Site';
+        unbanBtn.textContent = `✅ Unban Site${allIds.length > 1 ? ` (${allIds.length})` : ''}`;
         unbanBtn.onclick = () => {
-            window.unbanSite(report.url, report.id);
+            window.unbanSite(report.url, allIds);
             modal.classList.add('hidden');
         };
         footer.appendChild(unbanBtn);
     }
 
     // 3. IGNORE (if pending)
-    if (status === 'pending') {
+    if (groupStatus === 'pending') {
         const ignoreBtn = document.createElement('button');
         ignoreBtn.className = 'btn btn-outline';
-        ignoreBtn.textContent = '✓ Ignore Report';
+        ignoreBtn.textContent = `✓ Ignore Report${allIds.length > 1 ? ` (${allIds.length})` : ''}`;
         ignoreBtn.onclick = () => {
-            window.ignoreReport(report.url, report.id);
+            window.ignoreReport(report.url, allIds);
             modal.classList.add('hidden');
         };
         footer.appendChild(ignoreBtn);

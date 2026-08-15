@@ -91,11 +91,35 @@ app.post("/api/reports", async (req, res) => {
     try {
         await db.connectDB();
         
-        // Prevent duplicate reports from the same user for the same URL
-        const existing = await db.Report.findOne({
-            url: req.body.url,
-            reporterEmail: req.body.reporterEmail
-        });
+        // Extract hostname from URL
+        let hostname = req.body.hostname;
+        if (!hostname) {
+            try {
+                hostname = new URL(req.body.url).hostname;
+            } catch (e) {
+                hostname = req.body.url;
+            }
+        }
+        
+        // Strip www. for consistent checking
+        if (hostname && hostname.startsWith('www.')) hostname = hostname.replace(/^www\./, '');
+
+        // Prevent duplicate reports from the same user for the same DOMAIN
+        // We use regex to match both with and without www. if we just search by hostname,
+        // or we can just do a regex search on the url field if old records don't have hostname
+        let queryParams = { reporterEmail: req.body.reporterEmail };
+        
+        if (hostname) {
+            const escapedHostname = hostname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            queryParams.$or = [
+                { hostname: new RegExp(escapedHostname, 'i') },
+                { url: new RegExp('^https?://(www\\.)?' + escapedHostname, 'i') }
+            ];
+        } else {
+            queryParams.url = req.body.url;
+        }
+
+        const existing = await db.Report.findOne(queryParams);
         
         if (existing) {
             return res.status(400).json({ success: false, message: "You have already reported this site." });
@@ -141,9 +165,18 @@ app.post("/api/reports/update", async (req, res) => {
 app.post("/api/reports/cleanup", async (req, res) => {
     try {
         await db.connectDB();
-        // Delete all reports where status is NOT 'banned'
-        const result = await db.Report.deleteMany({ status: { $ne: 'banned' } });
-        console.log(`[API] Cleanup: Deleted ${result.deletedCount} reports.`);
+        const { status } = req.body || {};
+        
+        let query = {};
+        if (status && status !== 'all') {
+            query.status = status;
+        } else {
+            // Default behavior: delete all non-banned
+            query.status = { $ne: 'banned' };
+        }
+
+        const result = await db.Report.deleteMany(query);
+        console.log(`[API] Cleanup: Deleted ${result.deletedCount} reports matching ${JSON.stringify(query)}.`);
         res.json({ success: true, count: result.deletedCount });
     } catch (error) {
         console.error('[API] Cleanup error:', error);

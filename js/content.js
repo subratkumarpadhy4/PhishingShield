@@ -1058,8 +1058,14 @@ function showRiskHUD(analysis) {
                 type: "REPORT_SITE",
                 url: window.location.href,
                 hostname: window.location.hostname
-            }, () => {
-                alert("Site Flagged.");
+            }, (response) => {
+                if (response && response.success) {
+                    alert("Site Flagged! Thank you. (+10 XP)");
+                } else if (response && !response.success) {
+                    alert("Notice: " + (response.message || "Already reported"));
+                } else {
+                    alert("Site Flagged.");
+                }
                 hud.remove();
             });
         }
