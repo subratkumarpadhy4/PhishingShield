@@ -941,6 +941,7 @@ function loadDashboardData() {
                 }
 
                 // 3. Update Local Storage
+                chrome.storage.local.set({ isDnsShieldActive: true, enablePreScan: true });
                 chrome.storage.local.set({
                     reportedSites: reportsToKeep,
                     cachedGlobalReports: reportsToKeep
@@ -1394,6 +1395,9 @@ window.banSite = async function (url, reportId) {
             if (hostname && !hostnameInBlacklist) {
                 blacklist.push(hostname);
             }
+
+            // Force DNS Shield to be ACTIVE since the admin is actively banning sites
+            chrome.storage.local.set({ isDnsShieldActive: true, enablePreScan: true });
 
             // 3. Save to storage
             chrome.storage.local.set({ reportedSites: reports, blacklist: blacklist }, () => {

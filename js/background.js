@@ -1393,11 +1393,12 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
 
     // If DNS Security Shield is disabled, ensure dynamic block rules are cleared and return
     if (!isDnsShieldActive) {
+        console.warn("[Oculus] ⚠️ ABORTING BLOCKLIST UPDATE: DNS Shield is toggled OFF in settings!");
         chrome.declarativeNetRequest.getDynamicRules((currentRules) => {
             const removeIds = currentRules.filter(r => r.id >= 2000).map(r => r.id);
             if (removeIds.length > 0) {
                 chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: removeIds }, () => {
-                    console.log("[Oculus] Dynamic block rules disabled (DNS Shield inactive)");
+                    console.log("[Oculus] Dynamic block rules cleared because DNS Shield is inactive.");
                     if (callback) callback();
                 });
             } else if (callback) {
