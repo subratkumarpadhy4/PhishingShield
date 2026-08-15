@@ -1173,16 +1173,32 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
             blocklistCache.timestamp = nowServer;
 
             // Clean up blacklist: Remove URLs that are explicitly unbanned on server
+            // Ensure we don't accidentally unban a site just because it has a duplicate 'pending' report
+            const definitelyBanned = new Set();
+            mergedReports.forEach(r => {
+                if (r.status === 'banned') {
+                    definitelyBanned.add(normalizeUrl(r.url));
+                    try {
+                        const hostname = r.hostname || new URL(r.url).hostname;
+                        definitelyBanned.add(normalizeUrl(hostname));
+                    } catch (e) {}
+                }
+            });
+
             const unbannedUrls = new Set();
             mergedReports.forEach(r => {
                 if (r.status !== 'banned') {
-                    unbannedUrls.add(normalizeUrl(r.url));
+                    const normalizedUrl = normalizeUrl(r.url);
+                    if (!definitelyBanned.has(normalizedUrl)) {
+                        unbannedUrls.add(normalizedUrl);
+                    }
                     try {
                         const hostname = r.hostname || new URL(r.url).hostname;
-                        unbannedUrls.add(normalizeUrl(hostname));
-                    } catch (e) {
-                        // Skip if URL parsing fails
-                    }
+                        const normalizedHost = normalizeUrl(hostname);
+                        if (!definitelyBanned.has(normalizedHost)) {
+                            unbannedUrls.add(normalizedHost);
+                        }
+                    } catch (e) {}
                 }
             });
 
@@ -1260,6 +1276,7 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
         }
 
         // Also check if any server report's URL/hostname matches this banned item's URL/hostname
+        let matchedReport = null;
         for (const r of serverReports) {
             const rUrlKey = normalizeUrl(r.url);
             const rHostnameKey = normalizeUrl(r.hostname || '');
@@ -1267,11 +1284,19 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
             if (rUrlKey === urlKey || rUrlKey === hostnameKey ||
                 (hostnameKey && rHostnameKey === hostnameKey) ||
                 (hostnameKey && rHostnameKey === urlKey)) {
-                return r;
+                
+                // If we found a banned report, return it immediately (highest priority)
+                if (r.status === 'banned') {
+                    return r;
+                }
+                // Otherwise, keep track of the match but keep looking for a banned one
+                if (!matchedReport || r.lastUpdated > matchedReport.lastUpdated) {
+                    matchedReport = r;
+                }
             }
         }
 
-        return null;
+        return matchedReport;
     };
 
     // Merge local and server banned sites (deduplicate by URL)
