@@ -1151,10 +1151,11 @@ function updateBlocklistFromStorage(bypassUrl = null, callback = null, forceRefr
         }
 
         // Fetch from BOTH Local and Global servers
-        // Add cache busting to ensure we get the absolute latest state
+        // Add cache busting query parameter to ensure Vercel Edge cache is bypassed
+        const timeBuster = Date.now();
         Promise.allSettled([
-            fetch(API_LOCAL, { cache: 'no-store' }).then(res => res.json()).catch(err => []),
-            fetch(API_GLOBAL, { cache: 'no-store' }).then(res => res.json()).catch(err => [])
+            fetch(`${API_LOCAL}?t=${timeBuster}`, { cache: 'no-store' }).then(res => res.json()).catch(err => []),
+            fetch(`${API_GLOBAL}?t=${timeBuster}`, { cache: 'no-store' }).then(res => res.json()).catch(err => [])
         ]).then(results => {
             const localData = results[0].status === 'fulfilled' ? results[0].value : [];
             const globalData = results[1].status === 'fulfilled' ? results[1].value : [];
