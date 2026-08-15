@@ -140,6 +140,22 @@ app.post("/api/reports/cleanup", async (req, res) => {
     }
 });
 
+app.post("/api/reports/unban-all", async (req, res) => {
+    try {
+        await db.connectDB();
+        // Set all 'banned' reports to 'pending' and remove bannedAt
+        const result = await db.Report.updateMany(
+            { status: 'banned' },
+            { $set: { status: 'pending' }, $unset: { bannedAt: 1 } }
+        );
+        console.log(`[API] Unban All: Updated ${result.modifiedCount} reports to pending.`);
+        res.json({ success: true, count: result.modifiedCount });
+    } catch (error) {
+        console.error('[API] Unban All error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post("/api/reports/delete", async (req, res) => {
     try {
         await db.connectDB();

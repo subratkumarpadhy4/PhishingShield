@@ -305,21 +305,92 @@ function setupReportFilters() {
 
                         chrome.storage.local.set({ reportedSites: bannedOnly, cachedGlobalReports: [] }, () => {
                             console.log('[Admin] Local reports cleaned up (Kept banned only)');
+                    // Delete Success
+                    btnDeleteAll.innerText = "✅ Deleted";
+                    btnDeleteAll.style.background = "#198754";
+                    btnDeleteAll.style.color = "white";
+                    btnDeleteAll.style.borderColor = "#198754";
 
-                            // Refresh UI
-                            allReportsCache = [];
-                            loadDashboardData();
-                            alert(`✅ Cleanup Complete\n\nDeleted ${data.count} reports from server.\n\nPage will reload to sync changes.`);
-                            location.reload();
-                        });
+                    // Update UI immediately
+                    allReportsCache = allReportsCache.filter(r => r.status === 'banned');
+                    chrome.storage.local.set({ reportedSites: allReportsCache, cachedGlobalReports: allReportsCache }, () => {
+                        renderReports();
+                        setTimeout(() => {
+                            btnDeleteAll.innerText = originalText;
+                            btnDeleteAll.disabled = false;
+                            btnDeleteAll.style.background = "transparent";
+                            btnDeleteAll.style.color = "#dc3545";
+                            btnDeleteAll.style.borderColor = "#dc3545";
+                        }, 2000);
                     });
 
                 } catch (error) {
                     console.error('[Admin] Cleanup failed:', error);
                     alert("Failed to delete reports: " + error.message);
-                } finally {
                     btnDeleteAll.innerText = originalText;
                     btnDeleteAll.disabled = false;
+                }
+            }
+        };
+    }
+
+    // 5. Unblock All Button
+    const btnUnblockAll = document.getElementById('btn-unblock-all');
+    if (btnUnblockAll) {
+        btnUnblockAll.onclick = async (e) => {
+            e.preventDefault();
+            if (confirm("Are you sure you want to unblock ALL banned sites?\n\nThis will change their status back to pending and remove them from the blocklist.")) {
+                const originalText = btnUnblockAll.innerText;
+                btnUnblockAll.innerText = "Unblocking...";
+                btnUnblockAll.disabled = true;
+
+                try {
+                    const res = await fetch(`${API_BASE}/reports/unban-all`, { method: 'POST' });
+                    
+                    const contentType = res.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error(`Server returned non-JSON response (${res.status}). API might be deploying.`);
+                    }
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || 'Server error');
+
+                    // Success
+                    btnUnblockAll.innerText = "✅ Unblocked";
+                    btnUnblockAll.style.background = "#198754";
+                    btnUnblockAll.style.color = "white";
+
+                    // Update local cache
+                    allReportsCache = allReportsCache.map(r => {
+                        if (r.status === 'banned') {
+                            r.status = 'pending';
+                            delete r.bannedAt;
+                        }
+                        return r;
+                    });
+                    
+                    chrome.storage.local.set({ 
+                        reportedSites: allReportsCache, 
+                        cachedGlobalReports: allReportsCache,
+                        blacklist: [] 
+                    }, () => {
+                        // Force background worker to update rules
+                        chrome.runtime.sendMessage({ type: "UPDATE_BLOCKLIST" });
+                        chrome.runtime.sendMessage({ type: "FORCE_BLOCKLIST_SYNC" });
+                        
+                        renderReports();
+                        setTimeout(() => {
+                            btnUnblockAll.innerText = originalText;
+                            btnUnblockAll.disabled = false;
+                            btnUnblockAll.style.background = "transparent";
+                            btnUnblockAll.style.color = "#198754";
+                        }, 2000);
+                    });
+                } catch (error) {
+                    console.error('[Admin] Unblock All failed:', error);
+                    alert("Unblock All failed: " + error.message);
+                    btnUnblockAll.innerText = originalText;
+                    btnUnblockAll.disabled = false;
                 }
             }
         };
@@ -1080,6 +1151,12 @@ window.setReportFilter = function (status) {
             }
         }
     });
+
+    // Show 'Unblock All' only when viewing Banned reports
+    const unblockAllBtn = document.getElementById('btn-unblock-all');
+    if (unblockAllBtn) {
+        unblockAllBtn.style.display = (status === 'banned') ? 'inline-block' : 'none';
+    }
 
     // Re-render
     renderReports();
