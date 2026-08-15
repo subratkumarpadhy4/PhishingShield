@@ -405,11 +405,15 @@ function submitReport(payload, sendResponse) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json();
-            })
-            .then(data => {
+            .then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    if (res.status === 400) {
+                        if (sendResponse) sendResponse({ success: false, message: data.message || "Already reported" });
+                        return; // Stop execution, don't queue
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 console.log("[Oculus] ✅ Report Synced to Global Server:", data);
                 if (sendResponse) sendResponse({ success: true, data: data });
             })
@@ -431,10 +435,19 @@ function submitReport(payload, sendResponse) {
         body: JSON.stringify(payload),
         signal: controller.signal
     })
-        .then(res => {
+        .then(async res => {
             clearTimeout(timeoutId);
-            if (!res.ok) throw new Error("Local API Error");
-            return res.json();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                if (res.status === 400) {
+                    if (sendResponse) sendResponse({ success: false, message: data.message || "Already reported" });
+                    const err = new Error("Duplicate");
+                    err.is400 = true;
+                    throw err;
+                }
+                throw new Error("Local API Error");
+            }
+            return data;
         })
         .then(data => {
             console.log("[Oculus] ✅ Report Sent to LOCAL Server:", data);
@@ -448,6 +461,7 @@ function submitReport(payload, sendResponse) {
             }).catch(e => console.log("Global backup write failed (non-critical):", e));
         })
         .catch(err => {
+            if (err.is400) return; // Prevent fallback and queueing
             console.log("[Oculus] Local Server Unreachable (or timeout). Falling back to Global...", err);
             tryGlobal();
         });
