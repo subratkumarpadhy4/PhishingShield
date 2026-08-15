@@ -14,7 +14,15 @@ console.log(`[DASHBOARD] API Base: ${API_BASE}`);
 
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        console.log("Dashboard: Initializing...");
+        console.log("Dashboard UI initializing...");
+
+        // Check if History is Disabled and hide the logs tab
+        chrome.storage.local.get(['historyDisabled'], (res) => {
+            if (res.historyDisabled) {
+                const navLogs = document.querySelector('a[data-tab="tab-logs"]');
+                if (navLogs) navLogs.parentElement.style.display = 'none';
+            }
+        });
 
         // 0. ADMIN SECURITY CHECK
         checkAdminAccess();
@@ -50,14 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log("Tab Switched to:", tabId);
                     };
 
-                    // Use View Transitions API if available for smooth React-like feel
-                    if (document.startViewTransition) {
-                        document.startViewTransition(() => {
-                            updateTabState();
-                        });
-                    } else {
-                        updateTabState();
-                    }
+                    updateTabState();
                 });
             });
         }
@@ -67,6 +68,39 @@ document.addEventListener('DOMContentLoaded', () => {
             viewAllBtn.addEventListener('click', () => {
                 const usersTab = document.querySelector('[data-tab="users"]');
                 if (usersTab) usersTab.click();
+            });
+        }
+
+        const btnScanSite = document.getElementById('btn-scan-site');
+        const btnScanExt = document.getElementById('btn-scan-ext');
+        const viewSite = document.getElementById('scan-site-view');
+        const viewExt = document.getElementById('scan-ext-view');
+
+        if (btnScanSite && btnScanExt && viewSite && viewExt) {
+            btnScanSite.addEventListener('click', () => {
+                viewSite.style.display = 'flex';
+                viewExt.style.display = 'none';
+                
+                btnScanSite.style.background = 'var(--primary)';
+                btnScanSite.style.color = 'white';
+                btnScanSite.style.border = 'none';
+                
+                btnScanExt.style.background = 'white';
+                btnScanExt.style.color = '#64748b';
+                btnScanExt.style.border = '1px solid #cbd5e1';
+            });
+            
+            btnScanExt.addEventListener('click', () => {
+                viewSite.style.display = 'none';
+                viewExt.style.display = 'block';
+                
+                btnScanExt.style.background = 'var(--primary)';
+                btnScanExt.style.color = 'white';
+                btnScanExt.style.border = 'none';
+                
+                btnScanSite.style.background = 'white';
+                btnScanSite.style.color = '#64748b';
+                btnScanSite.style.border = '1px solid #cbd5e1';
             });
         }
 
@@ -141,6 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 });
+                
+                // Force an immediate re-render of the leaderboard with the fresh data
+                // so we don't wait for storage onChanged to fire (which may be skipped if data is identical)
+                renderLeaderboard(users);
             });
         }
 
@@ -158,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 4. AUTH & PROFILE
         initDashboardAuth();
-        initProfileModal();
+        initProfileTab();
 
         // 5. ADMIN PASSKEY INPUT
         // 5. ADMIN ACCESS CHECK (OWNER ONLY)
@@ -258,11 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.style.color = 'var(--primary)';
 
         try {
-            // 2. Execute Action (min 800ms for visual feel)
-            const start = Date.now();
+            // 2. Execute Action
             await actionFn();
-            const elapsed = Date.now() - start;
-            if (elapsed < 800) await new Promise(r => setTimeout(r, 800 - elapsed));
 
             // 3. Success Feedback
             btn.innerHTML = `✅ Updated`;
@@ -357,7 +392,7 @@ function loadUserReports() {
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="4" style="text-align:center; padding:30px; color:#64748b;">
+                        <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
                             <div style="font-size:16px; margin-bottom:10px;">👤 <strong>Guest Mode Active</strong></div>
                             <div>Please <a href="login.html" style="color:#2563eb;">Log In</a> to save and track your reports.</div>
                         </td>
@@ -404,7 +439,7 @@ function loadUserReports() {
             .catch(err => {
                 console.error("Failed to fetch reports:", err);
                 const tbody = document.getElementById('user-reports-body');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #ef4444; padding:20px;">Failed to load reports. Server may be offline.</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #ef4444; padding:20px;">Failed to load reports. Server may be offline.</td></tr>';
             });
     });
 }
@@ -415,7 +450,7 @@ function renderUserReportsTable(reports) {
     tbody.innerHTML = '';
 
     if (!reports || reports.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color: #64748b;">You haven\'t reported any sites yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color: #64748b;">You haven\'t reported any sites yet.</td></tr>';
         return;
     }
 
@@ -478,6 +513,11 @@ function renderUserReportsTable(reports) {
             </td>
             <td>${statusBadge}</td>
             <td>${analysisHtml}</td>
+            <td style="text-align: center;">
+                <button class="btn-delete-report" data-id="${r.id}" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; transition: transform 0.2s;" title="Delete Report">
+                    🗑️
+                </button>
+            </td>
         `;
 
         // Attach Listener Programmatically (CSP Safe)
@@ -485,6 +525,47 @@ function renderUserReportsTable(reports) {
         if (viewBtn && r.aiAnalysis) {
             viewBtn.addEventListener('click', () => {
                 showAnalysisModal(r.aiAnalysis);
+            });
+        }
+
+        const deleteBtn = tr.querySelector('.btn-delete-report');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm("Are you sure you want to delete this report? This action cannot be undone.")) return;
+                
+                try {
+                    deleteBtn.innerHTML = '⏳';
+                    const response = await fetch(`${API_BASE}/reports/delete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: r.id })
+                    });
+                    
+                    const resData = await response.json();
+                    if (resData.success) {
+                        removeRowLocally();
+                    } else {
+                        throw new Error(resData.message || "Server returned false");
+                    }
+                } catch (error) {
+                    console.error("Error deleting report from server:", error);
+                    // Fallback: Delete locally even if server is unreachable
+                    console.log("Falling back to local deletion...");
+                    removeRowLocally();
+                }
+                
+                function removeRowLocally() {
+                    chrome.storage.local.get(['reportedSites'], (data) => {
+                        let reports = data.reportedSites || [];
+                        reports = reports.filter(rep => rep.id !== r.id);
+                        chrome.storage.local.set({ reportedSites: reports }, () => {
+                            tr.remove();
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color: #64748b;">You haven\'t reported any sites yet.</td></tr>';
+                            }
+                        });
+                    });
+                }
             });
         }
 
@@ -618,6 +699,13 @@ function initDashboardAuth() {
             // Logged In
             if (ui) ui.style.display = 'flex';
             if (un) un.textContent = user.name;
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
+            if (sidebarAvatar) {
+                const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>`;
+                sidebarAvatar.src = user.avatar ? user.avatar : defaultAvatar;
+                if (!user.avatar) { sidebarAvatar.style.padding = '4px'; sidebarAvatar.style.background = '#f8fafc'; }
+                else { sidebarAvatar.style.padding = '0'; }
+            }
             if (guestNav) guestNav.style.display = 'none';
         } else {
             // Guest / Logged Out
@@ -637,67 +725,258 @@ function initDashboardAuth() {
     }
 }
 
-function initProfileModal() {
-    const editLink = document.getElementById('edit-profile-link');
-    const avatar = document.getElementById('user-avatar');
-    const modal = document.getElementById('profile-modal');
-    const cancelBtn = document.getElementById('cancel-profile');
-    const saveBtn = document.getElementById('save-profile');
-    const nameInput = document.getElementById('edit-name');
-    const passInput = document.getElementById('edit-password');
+function initProfileTab() {
+    const openTabBtn = document.getElementById('open-profile-tab');
+    const saveBtn = document.getElementById('tab-save-profile');
+    const firstNameInput = document.getElementById('tab-edit-firstname');
+    const lastNameInput = document.getElementById('tab-edit-lastname');
+    const emailInput = document.getElementById('tab-edit-email');
+    const mobileInput = document.getElementById('tab-edit-mobile');
+    const avatarInput = document.getElementById('tab-edit-avatar');
+    const profilePageAvatar = document.getElementById('profile-page-avatar');
+    const profilePageName = document.getElementById('profile-page-name');
+    const cropperContainer = document.getElementById('tab-cropper-container');
+    const cropperImage = document.getElementById('tab-cropper-image');
+    
+    let base64Avatar = null;
+    let base64Banner = null;
+    let cropper = null;
+    let cropMode = null; // 'avatar' or 'banner'
 
-    if (!modal) return;
+    const profilePageBanner = document.getElementById('profile-page-banner');
+    const bannerInput = document.getElementById('tab-edit-banner');
+    const btnRotateLeft = document.getElementById('btn-crop-rotate-left');
+    const btnRotateRight = document.getElementById('btn-crop-rotate-right');
 
-    function openModal() {
-        Auth.checkSession((user) => {
-            if (user) {
-                if (nameInput) nameInput.value = user.name || '';
-                if (passInput) passInput.value = '';
+    if (btnRotateLeft) {
+        btnRotateLeft.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (cropper) cropper.rotate(-90);
+        });
+    }
+    
+    if (btnRotateRight) {
+        btnRotateRight.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (cropper) cropper.rotate(90);
+        });
+    }
 
-                modal.style.display = 'flex';
-                // Trigger animation
-                requestAnimationFrame(() => {
-                    modal.classList.add('active');
-                });
+    if (profilePageAvatar && avatarInput) {
+        profilePageAvatar.addEventListener('click', () => {
+            avatarInput.click();
+        });
+    }
+
+    if (avatarInput) {
+        avatarInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                cropMode = 'avatar';
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+                    cropperImage.src = ev.target.result;
+                    cropperContainer.style.display = 'flex';
+                    
+                    if (typeof Cropper !== 'undefined') {
+                        cropper = new Cropper(cropperImage, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            minCropBoxWidth: 50,
+                            minCropBoxHeight: 50,
+                        });
+                    } else {
+                        base64Avatar = ev.target.result;
+                        if (profilePageAvatar) profilePageAvatar.src = base64Avatar;
+                    }
+                };
+                reader.readAsDataURL(file);
             }
         });
     }
-    const closeModal = () => {
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 300);
-    };
 
-    if (editLink) editLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-    if (avatar) {
-        avatar.style.cursor = 'pointer';
-        avatar.addEventListener('click', openModal);
+    if (profilePageBanner && bannerInput) {
+        profilePageBanner.addEventListener('click', () => {
+            bannerInput.click();
+        });
     }
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (bannerInput) {
+        bannerInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                cropMode = 'banner';
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+                    cropperImage.src = ev.target.result;
+                    cropperContainer.style.display = 'flex';
+                    
+                    if (typeof Cropper !== 'undefined') {
+                        cropper = new Cropper(cropperImage, {
+                            aspectRatio: 800 / 150, // Match the banner aspect ratio
+                            viewMode: 1,
+                            minCropBoxWidth: 100,
+                            minCropBoxHeight: 50,
+                        });
+                    } else {
+                        base64Banner = ev.target.result;
+                        if (profilePageBanner) profilePageBanner.style.backgroundImage = `url(${base64Banner})`;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Function to populate the tab data when opened
+    function loadProfileData() {
+        Auth.checkSession((user) => {
+            if (user) {
+                if (firstNameInput || lastNameInput) {
+                    const parts = (user.name || '').split(' ');
+                    if (firstNameInput) firstNameInput.value = parts[0] || '';
+                    if (lastNameInput) lastNameInput.value = parts.slice(1).join(' ') || '';
+                }
+                if (emailInput) emailInput.value = user.email || '';
+                if (mobileInput && user.mobile) mobileInput.value = user.mobile;
+                if (avatarInput) avatarInput.value = '';
+                if (cropperContainer) cropperContainer.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                
+                if (profilePageAvatar) {
+                    const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>`;
+                    profilePageAvatar.src = user.avatar ? user.avatar : defaultAvatar;
+                    if (!user.avatar) profilePageAvatar.style.padding = '12px'; else profilePageAvatar.style.padding = '0';
+                    base64Avatar = user.avatar || null;
+                }
+                if (profilePageBanner) {
+                    if (user.banner) {
+                        profilePageBanner.style.backgroundImage = `url(${user.banner})`;
+                    } else {
+                        profilePageBanner.style.backgroundImage = `linear-gradient(135deg, #1e293b 0%, #334155 100%)`;
+                    }
+                    base64Banner = user.banner || null;
+                }
+                if (profilePageName) {
+                    profilePageName.textContent = user.name || 'User';
+                }
+            }
+        });
+    }
+
+    // Open Tab listener
+    if (openTabBtn) {
+        openTabBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Switch tabs visually
+            const tabs = document.querySelectorAll('.tab-content');
+            const navLinks = document.querySelectorAll('.nav-item');
+            tabs.forEach(t => t.classList.remove('active'));
+            navLinks.forEach(l => l.classList.remove('active'));
+            
+            const profileTab = document.getElementById('tab-profile');
+            const profileNav = document.querySelector('[data-tab="tab-profile"]');
+            if (profileTab) profileTab.classList.add('active');
+            if (profileNav) profileNav.classList.add('active');
+            
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) pageTitle.textContent = 'Profile & Settings';
+            
+            loadProfileData();
+        });
+    }
+    
+    // Also attach to nav item if clicked directly
+    const navProfile = document.querySelector('[data-tab="tab-profile"]');
+    if (navProfile) {
+        navProfile.addEventListener('click', () => {
+            loadProfileData();
+        });
+    }
 
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
-            const newName = nameInput.value.trim();
-            const newPass = passInput.value;
-            if (!newName) { alert("Name required"); return; }
+            const newFirstName = firstNameInput.value.trim();
+            const newLastName = lastNameInput.value.trim();
+            const newName = `${newFirstName} ${newLastName}`.trim();
+            const errorFirstName = document.getElementById('error-firstname');
+            
+            // Reset validation
+            firstNameInput.style.borderColor = '#e2e8f0';
+            if (errorFirstName) errorFirstName.style.display = 'none';
 
-            saveBtn.textContent = 'Saving...';
+            if (!newName) { 
+                firstNameInput.style.borderColor = '#ef4444';
+                if (errorFirstName) errorFirstName.style.display = 'block';
+                return; 
+            }
+            
+            if (cropper) {
+                if (cropMode === 'avatar') {
+                    const canvas = cropper.getCroppedCanvas({
+                        width: 200,
+                        height: 200,
+                    });
+                    if (canvas) {
+                        base64Avatar = canvas.toDataURL('image/jpeg', 0.8);
+                        if (profilePageAvatar) profilePageAvatar.src = base64Avatar;
+                    }
+                } else if (cropMode === 'banner') {
+                    const canvas = cropper.getCroppedCanvas({
+                        width: 800,
+                        height: 150,
+                    });
+                    if (canvas) {
+                        base64Banner = canvas.toDataURL('image/jpeg', 0.8);
+                        if (profilePageBanner) profilePageBanner.style.backgroundImage = `url(${base64Banner})`;
+                    }
+                }
+            }
+
+            const originalBtnText = saveBtn.textContent;
+            saveBtn.innerHTML = '<span style="display:inline-block; animation: spin 1s linear infinite;">⏳</span> Saving...';
             saveBtn.disabled = true;
 
             Auth.checkSession((currentUser) => {
                 if (currentUser) {
                     const data = { name: newName };
-                    if (newPass) data.password = newPass;
+                    if (base64Avatar) data.avatar = base64Avatar;
+                    if (base64Banner) data.banner = base64Banner;
 
                     Auth.updateProfile(currentUser.email, data, (res) => {
-                        saveBtn.textContent = 'Save Changes';
-                        saveBtn.disabled = false;
                         if (res.success) {
-                            alert("Profile Updated");
-                            closeModal();
+                            // Button micro-animation success
+                            saveBtn.innerHTML = '✓ Saved!';
+                            saveBtn.style.background = '#10b981';
+                            setTimeout(() => {
+                                saveBtn.textContent = originalBtnText;
+                                saveBtn.style.background = 'var(--primary)';
+                                saveBtn.disabled = false;
+                            }, 2000);
+                            
                             const un = document.getElementById('user-name');
                             if (un) un.textContent = newName;
+                            if (profilePageName) profilePageName.textContent = newName;
+                            const sidebarAvatar = document.getElementById('sidebar-avatar');
+                            if (sidebarAvatar && base64Avatar) sidebarAvatar.src = base64Avatar;
+                            
+                            // Cleanup cropper view
+                            if (cropper) {
+                                cropper.destroy();
+                                cropper = null;
+                            }
+                            if (cropperContainer) cropperContainer.style.display = 'none';
                         } else {
                             alert(res.message);
                         }
@@ -707,23 +986,9 @@ function initProfileModal() {
         });
     }
 
-    const deleteBtn = document.getElementById('delete-profile');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-            if (confirm("⚠️ WARNING: Are you sure you want to PERMANENTLY delete your account? This cannot be undone.")) {
-                Auth.checkSession((user) => {
-                    if (user) {
-                        Auth.deleteAccount(user.email, () => {
-                            alert("Account deleted.");
-                            window.location.reload();
-                        });
-                    }
-                });
-            }
-        });
-    }
 
-    const logoutBtn = document.getElementById('logout-btn');
+
+    const logoutBtn = document.getElementById('tab-logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             if (confirm("Are you sure you want to logout?")) {
@@ -731,6 +996,125 @@ function initProfileModal() {
             }
         });
     }
+
+    // Settings Modal Logic
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    
+    if (btnOpenSettings && btnCloseSettings && settingsModal) {
+        btnOpenSettings.addEventListener('click', () => {
+            settingsModal.style.display = 'flex';
+            // Sync history toggle state
+            chrome.storage.local.get(['historyDisabled'], (res) => {
+                const toggleHistory = document.getElementById('toggle-history');
+                if (toggleHistory) toggleHistory.checked = res.historyDisabled === true;
+            });
+        });
+        btnCloseSettings.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) settingsModal.style.display = 'none';
+        });
+    }
+
+    // Accordion Logic
+    function setupAccordion(headerId, contentId) {
+        const header = document.getElementById(headerId);
+        const content = document.getElementById(contentId);
+        if (header && content) {
+            header.addEventListener('click', () => {
+                const arrow = header.querySelector('.arrow');
+                if (content.style.display === 'none' || content.style.display === '') {
+                    content.style.display = 'block';
+                    if (arrow) arrow.style.transform = 'rotate(90deg)';
+                } else {
+                    content.style.display = 'none';
+                    if (arrow) arrow.style.transform = 'rotate(0deg)';
+                }
+            });
+        }
+    }
+    setupAccordion('header-security', 'content-security');
+    setupAccordion('header-change-pwd', 'content-change-pwd');
+    setupAccordion('header-personal', 'content-personal');
+    setupAccordion('header-sessions', 'content-sessions');
+
+    // History Toggle
+    const toggleHistory = document.getElementById('toggle-history');
+    if (toggleHistory) {
+        toggleHistory.addEventListener('change', () => {
+            const isChecked = toggleHistory.checked;
+            chrome.storage.local.set({ historyDisabled: isChecked });
+            
+            // Immediately hide/show the logs tab in sidebar
+            const navLogs = document.querySelector('a[data-tab="tab-logs"]');
+            if (navLogs) {
+                navLogs.parentElement.style.display = isChecked ? 'none' : 'block';
+            }
+        });
+    }
+
+    // Mock OTP Flow: Password
+    const linkForgotPassword = document.getElementById('link-forgot-password');
+    const otpPasswordFlow = document.getElementById('otp-password-flow');
+    const btnVerifyPasswordOtp = document.getElementById('btn-verify-password-otp');
+    const otpPasswordInput = document.getElementById('otp-password-input');
+
+    if (linkForgotPassword && otpPasswordFlow) {
+        linkForgotPassword.addEventListener('click', (e) => {
+            e.preventDefault();
+            otpPasswordFlow.style.display = 'block';
+        });
+    }
+    
+    if (btnVerifyPasswordOtp) {
+        btnVerifyPasswordOtp.addEventListener('click', () => {
+            if (otpPasswordInput.value.length === 6) {
+                alert("OTP Verified Successfully. You may now enter a new password without your current password.");
+                otpPasswordFlow.style.display = 'none';
+                document.getElementById('settings-old-password').disabled = true;
+                document.getElementById('settings-old-password').value = 'verified-via-otp';
+            } else {
+                alert("Invalid OTP code.");
+            }
+        });
+    }
+
+    // Mock OTP Flow: Email
+    const btnSendEmailOtp = document.getElementById('btn-send-email-otp');
+    const otpEmailFlow = document.getElementById('otp-email-flow');
+    const btnVerifyEmailOtp = document.getElementById('btn-verify-email-otp');
+    const otpEmailInput = document.getElementById('otp-email-input');
+
+    if (btnSendEmailOtp && otpEmailFlow) {
+        btnSendEmailOtp.addEventListener('click', () => {
+            const newEmail = document.getElementById('settings-edit-email').value;
+            if (!newEmail || !newEmail.includes('@')) {
+                alert("Please enter a valid new email address first.");
+                return;
+            }
+            btnSendEmailOtp.textContent = "Sent!";
+            otpEmailFlow.style.display = 'block';
+        });
+    }
+
+    if (btnVerifyEmailOtp) {
+        btnVerifyEmailOtp.addEventListener('click', () => {
+            if (otpEmailInput.value.length === 6) {
+                alert("Email changed successfully!");
+                otpEmailFlow.style.display = 'none';
+                settingsModal.style.display = 'none';
+                // In a real scenario, this would update Auth
+            } else {
+                alert("Invalid OTP code.");
+            }
+        });
+    }
+
+    // Call loadProfileData immediately since it's the default tab
+    loadProfileData();
 }
 
 function checkAdminAccess() {
@@ -887,35 +1271,6 @@ function updateStats(log) {
         const p = level === 1 ? (xp / 100) * 100 : ((xp - prev) / (next - prev)) * 100;
         if (bar) bar.style.width = Math.min(p, 100) + '%';
 
-        // --- FEATURE UNLOCK UI UPDATES ---
-        const featQR = document.getElementById('feat-qr');
-        const featCham = document.getElementById('feat-cham');
-
-        if (featQR) {
-            // UNLOCKED FOR DEMO
-            if (true || level >= 5) {
-                featQR.innerHTML = `<span>✅</span> QR Scanner <span style="font-size:9px;">(ACTIVE)</span>`;
-                featQR.style.color = '#10b981'; // Success Green
-                featQR.style.fontWeight = '600';
-            } else {
-                featQR.innerHTML = `<span>🔒</span> QR Scanner <span style="font-size:9px; opacity:0.7;">(Lvl 5)</span>`;
-                featQR.style.color = '#94a3b8';
-                featQR.style.fontWeight = 'normal';
-            }
-        }
-
-        if (featCham) {
-            // UNLOCKED FOR DEMO
-            if (true || level >= 20) {
-                featCham.innerHTML = `<span>✅</span> Chameleon <span style="font-size:9px;">(ACTIVE)</span>`;
-                featCham.style.color = '#10b981'; // Success Green
-                featCham.style.fontWeight = '600';
-            } else {
-                featCham.innerHTML = `<span>🔒</span> Chameleon <span style="font-size:9px; opacity:0.7;">(Lvl 20)</span>`;
-                featCham.style.color = '#94a3b8';
-                featCham.style.fontWeight = 'normal';
-            }
-        }
     });
 
     // --- NEW: Radar Stats Population ---
@@ -951,27 +1306,45 @@ function updateStats(log) {
     }
 
     // --- NEW: Radar Visualization Logic ---
-    const radarContainer = document.getElementById('threat-radar');
-    if (radarContainer) {
-        // Get the absolute latest entry (regardless of whether it's a threat or not)
+    const matrixLog = document.getElementById('matrix-log');
+    if (matrixLog) {
         const absoluteLast = [...log].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
 
-        // If the very last site visited was High Risk, show red alert blips
+        // Remove active line cursor block
+        const activeLine = document.getElementById('matrix-active-line');
+        if (activeLine) activeLine.remove();
+
+        const newLine = document.createElement('div');
+
         if (absoluteLast && absoluteLast.score > 20) {
-            radarContainer.classList.add('danger-mode');
+            newLine.className = 'matrix-text-red';
+            newLine.textContent = `[WARN] Intercepted threat: ${absoluteLast.domain || 'Unknown'}`;
             if (document.getElementById('radar-status')) {
                 document.getElementById('radar-status').innerHTML =
                     '<span style="display:inline-block; width:8px; height:8px; background:#dc3545; border-radius:50%; margin-right:5px; animation: blink 0.5s infinite;"></span> Threat Detected!';
                 document.getElementById('radar-status').style.color = '#dc3545';
             }
         } else {
-            radarContainer.classList.remove('danger-mode');
-            // Revert status to normal
+            newLine.className = 'matrix-text-green';
+            newLine.textContent = `[SEC] Scan complete. No anomalies.`;
             if (document.getElementById('radar-status')) {
                 document.getElementById('radar-status').innerHTML =
                     '<span style="display:inline-block; width:8px; height:8px; background:#28a745; border-radius:50%; margin-right:5px; animation: blink 2s infinite;"></span> Active Monitoring';
                 document.getElementById('radar-status').style.color = '#28a745';
             }
+        }
+
+        matrixLog.appendChild(newLine);
+        
+        // Add cursor back
+        const cursorLine = document.createElement('div');
+        cursorLine.id = 'matrix-active-line';
+        cursorLine.innerHTML = '<span class="matrix-cursor">_</span>';
+        matrixLog.appendChild(cursorLine);
+
+        // Keep log from growing forever
+        while (matrixLog.children.length > 6) {
+            matrixLog.removeChild(matrixLog.firstChild);
         }
     }
 }
@@ -1354,41 +1727,56 @@ function renderLeaderboard(users) {
         return;
     }
 
-    // Sort by XP Descending
-    const sorted = [...users].sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 5);
+    chrome.storage.local.get(['currentUser'], (res) => {
+        const cu = res.currentUser;
+        if (cu && cu.email) {
+            const meInGlobal = users.find(u => u.email === cu.email);
+            if (meInGlobal && cu.avatar) {
+                meInGlobal.avatar = cu.avatar;
+            }
+        }
 
-    let html = '';
-    sorted.forEach((u, i) => {
-        const rank = i + 1;
-        let medal = '';
-        if (rank === 1) medal = '🥇';
-        else if (rank === 2) medal = '🥈';
-        else if (rank === 3) medal = '🥉';
-        else medal = `#${rank}`;
+        // Sort by XP Descending
+        const sorted = [...users].sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 5);
 
-        const name = u.name || 'Anonymous';
-        const level = u.level || 1;
-        const xp = u.xp || 0;
+        let html = '';
+        sorted.forEach((u, i) => {
+            const rank = i + 1;
+            let medal = '';
+            if (rank === 1) medal = '🥇';
+            else if (rank === 2) medal = '🥈';
+            else if (rank === 3) medal = '🥉';
+            else medal = `#${rank}`;
 
-        let rankName = 'Novice';
-        if (level >= 20) rankName = 'Sentinel';
-        else if (level >= 5) rankName = 'Scout';
+            let name = u.name || 'Anonymous';
+            if (name.length > 12) name = name.substring(0, 10) + '..';
+            const level = u.level || 1;
+            const xp = u.xp || 0;
 
-        html += `
-            <div class="leaderboard-item" style="display:flex; justify-content:space-between; align-items:center; padding: 10px; border-bottom: 1px solid var(--border-color);">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="font-weight:bold; font-size:16px; width:30px; text-align:center;">${medal}</div>
-                    <div>
-                        <div class="lb-name" style="font-weight:600; color:#343a40; font-size:14px;">${name}</div>
-                        <div class="lb-rank" style="font-size:12px; color:#6c757d;">Level ${level} <span style="font-size:10px; color:#adb5bd;">(${rankName})</span></div>
+            let rankName = 'Novice';
+            if (level >= 20) rankName = 'Sentinel';
+            else if (level >= 5) rankName = 'Scout';
+
+            const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>`;
+            const avatarSrc = u.avatar ? u.avatar : defaultAvatar;
+
+            html += `
+                <div class="leaderboard-item" style="display:flex; justify-content:space-between; align-items:center; padding: 10px; border-bottom: 1px solid var(--border-color);">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="font-weight:bold; font-size:16px; width:30px; text-align:center;">${medal}</div>
+                        <img src="${avatarSrc}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); background: #f8fafc; padding: ${u.avatar ? '0' : '4px'};">
+                        <div>
+                            <div class="lb-name" style="font-weight:600; color:#343a40; font-size:14px;">${name}</div>
+                            <div class="lb-rank" style="font-size:12px; color:#6c757d;">Level ${level} <span style="font-size:10px; color:#adb5bd;">(${rankName})</span></div>
+                        </div>
                     </div>
+                    <div style="font-weight:bold; color:#0d6efd; font-size:14px;">${xp} XP</div>
                 </div>
-                <div style="font-weight:bold; color:#0d6efd; font-size:14px;">${xp} XP</div>
-            </div>
-        `;
-    });
+            `;
+        });
 
-    container.innerHTML = html;
+        container.innerHTML = html;
+    });
 }
 
 // ============================================

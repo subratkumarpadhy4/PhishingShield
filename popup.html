@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,199 +7,155 @@
     <link rel="stylesheet" href="css/popup.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
+<div class="app-container">
 
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="brand">
-                <div class="logo-glow">
-                    <img src="images/icon48.png" alt="Oculus Logo">
+    <!-- Header -->
+    <header class="header">
+        <div class="brand">
+            <div class="logo-glow"><img src="images/icon48.png" alt="Oculus"></div>
+            <span>Oculus</span>
+        </div>
+        <div class="header-actions" id="auth-section">
+            <a href="login.html" target="_blank" id="btn-login" class="btn-micro btn-glow">Login</a>
+            <a href="dashboard.html" target="_blank" id="user-profile-link" class="profile-link" style="display:none;">
+                <div class="avatar-circle">
+                    <img id="popup-avatar" src="images/icon48.png" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:none;">
+                    <span id="user-initial">U</span>
                 </div>
-                <span>Oculus</span>
-            </div>
-            <div class="header-actions" id="auth-section">
-                <!-- Login Button -->
-                <a href="login.html" target="_blank" id="btn-login" class="btn-micro btn-glow">Login</a>
+            </a>
+        </div>
+    </header>
 
-                <!-- Profile Link (Hidden by default) -->
-                <a href="dashboard.html" target="_blank" id="user-profile-link" class="profile-link" style="display: none;">
-                    <div class="avatar-circle">
-                        <span id="user-initial">U</span>
-                    </div>
-                </a>
-            </div>
-        </header>
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" id="tab-dashboard">Dashboard</div>
+        <div class="tab" id="tab-dojo">Training Dojo</div>
+    </div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <div class="tab active" id="tab-dashboard">Dashboard</div>
-            <div class="tab" id="tab-dojo">Training Dojo</div>
+    <!-- VIEW: DASHBOARD -->
+    <div id="view-dashboard" class="content-area">
+
+        <!-- Incognito Warning -->
+        <div id="incognito-warning" class="warning-banner" style="display:none;">
+            <div class="warning-banner-title">⚠️ Incognito Not Protected</div>
+            <div class="warning-banner-desc">Enable "Allow in Incognito" in extension settings.</div>
+            <button id="btn-enable-incognito" class="warning-banner-btn">Enable Now</button>
         </div>
 
-        <!-- VIEW: DASHBOARD -->
-        <div id="view-dashboard" class="content-area">
-
-            <!-- Incognito Warning (Hidden by default) -->
-            <div id="incognito-warning" class="warning-banner" style="display: none;">
-                <div class="warning-banner-title">⚠️ Incognito Not Protected</div>
-                <div class="warning-banner-desc">Enable "Allow in Incognito" in extension settings to stay fully protected.</div>
-                <button id="btn-enable-incognito" class="warning-banner-btn">Enable Now</button>
+        <!-- Hero Row -->
+        <div class="hero-row">
+            <div class="shield-wrap" id="status-icon">
+                <img src="images/image.png" alt="Shield" class="shield-img">
+                <span class="shield-dot" id="status-dot"></span>
             </div>
-
-            <!-- Hero Status -->
-            <div class="hero-section">
-                <div class="shield-container secure" id="status-icon">
-                    <div class="pulse-ring"></div>
-                    <img src="images/image.png" alt="Status Shield" class="hero-logo">
-                </div>
-                <div class="status-info">
-                    <div class="status-title" id="status-text">System Secure</div>
-                    <div class="status-subtitle">
-                        <span class="status-dot" id="status-dot"></span>
-                        <span id="status-sub">Real-time protection active</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="safety-level">1</div>
-                    <div class="stat-label">Level</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value"><span id="safety-xp">0</span></div>
-                    <div class="stat-label">XP Earned</div>
-                    <div class="xp-bar-mini">
-                        <div class="xp-fill" id="xp-bar-fill" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="stat-card danger-card">
-                    <div class="stat-value" id="blocked-count">0</div>
-                    <div class="stat-label">Threats</div>
-                </div>
-            </div>
-
-            <!-- COMMUNITY TRUST SECTION -->
-            <div class="trust-card">
-                <div class="trust-header">
-                    <span id="trust-domain" class="trust-domain">...</span>
-                    <span id="trust-score-val" class="trust-score-val">-</span>
-                </div>
-                <div class="vote-actions">
-                    <button id="btn-vote-safe" class="btn-vote btn-vote-safe">
-                        <span class="icon">👍</span> Safe
-                    </button>
-                    <button id="btn-vote-unsafe" class="btn-vote btn-vote-unsafe">
-                        <span class="icon">👎</span> Unsafe
-                    </button>
-                </div>
-            </div>
-
-            <!-- Controls -->
-            <div class="controls-panel">
-                <div class="control-item">
-                    <div class="control-info">
-                        <div class="control-title">DNS Security Shield 🛡️</div>
-                        <div class="control-desc" id="dns-shield-desc">Real-time DNS & pre-flight security</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="toggle-prescan">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-
-                <div class="control-item">
-                    <div class="control-info">
-                        <div class="control-title">Shadow Profile 🧬</div>
-                        <div class="control-desc" id="shadow-profile-desc">Anti-Fingerprinting protection</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="toggle-shadow">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-
-                <div class="control-item fortress-item">
-                    <div class="control-info">
-                        <div class="control-title">Fortress Mode 🛡️</div>
-                        <div class="control-desc">Zero Trust Security layer</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="toggle-fortress">
-                        <span class="slider fortress-slider"></span>
-                    </label>
-                </div>
-
-                <div class="control-item">
-                    <div class="control-info">
-                        <div class="control-title">HTTPS-Only Mode 🔒</div>
-                        <div class="control-desc">Auto-upgrade HTTP to HTTPS</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="toggle-https-upgrade">
-                        <span class="slider https-slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Bottom Actions -->
-            <div class="bottom-actions">
-                <div class="history-control">
-                    <label>History Limit</label>
-                    <input type="number" id="history-limit" min="10" max="100" value="50">
-                </div>
-
-                <a href="dashboard.html" target="_blank" id="open-dashboard" class="btn-full btn-glass">
-                    View Full Dashboard
-                </a>
-
-                <button id="btn-logout" class="btn-full btn-text-danger" style="display: none;">
-                    Sign Out
-                </button>
+            <div class="hero-text">
+                <div class="hero-title" id="status-text">System Secure</div>
+                <div class="hero-sub" id="status-sub">Active</div>
             </div>
         </div>
 
-        <!-- VIEW: DOJO -->
-        <div id="view-dojo" class="content-area" style="display: none;">
-            <div class="dojo-card">
-                <div class="dojo-header">
-                    <h3>Spot the Phish!</h3>
-                    <p id="dojo-scenario">Analyze the URL below...</p>
-                </div>
-
-                <div class="url-display">
-                    <div class="browser-bar">
-                        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-                    </div>
-                    <div class="url-text" id="dojo-url">http://example.com</div>
-                </div>
-
-                <div class="dojo-actions">
-                    <button class="btn-dojo btn-safe" id="btn-safe">
-                        <span class="icon">✅</span> Safe
-                    </button>
-                    <button class="btn-dojo btn-phish" id="btn-phish">
-                        <span class="icon">🎣</span> Phish
-                    </button>
-                </div>
-
-                <div id="dojo-feedback" class="feedback-msg" style="display: none;"></div>
-
-                <button id="btn-next" class="btn-full btn-primary" style="margin-top: 14px; display: none;">
-                    Next Challenge &rarr;
-                </button>
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-chip">
+                <span class="chip-val" id="safety-level">1</span>
+                <span class="chip-lbl">Level</span>
+            </div>
+            <div class="stat-chip stat-chip-xp">
+                <span class="chip-val"><span id="safety-xp">0</span> XP</span>
+                <div class="xp-bar"><div class="xp-fill" id="xp-bar-fill" style="width:0%"></div></div>
+            </div>
+            <div class="stat-chip stat-chip-danger">
+                <span class="chip-val" id="blocked-count">0</span>
+                <span class="chip-lbl">Threats</span>
             </div>
         </div>
+
+        <!-- Site Trust Row -->
+        <div class="trust-row">
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <span id="trust-domain" class="trust-domain">...</span>
+                <span id="trust-score-val" style="font-size: 11px; margin-top: 2px; font-weight: 600;">Loading...</span>
+            </div>
+            <div class="trust-actions">
+                <button id="btn-vote-safe" class="btn-vote btn-vote-safe">Safe ✓</button>
+                <button id="btn-vote-unsafe" class="btn-vote btn-vote-unsafe">Unsafe ✗</button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-panel">
+            <div class="ctrl-row">
+                <span class="ctrl-icon">🛡️</span>
+                <span class="ctrl-label">DNS Shield</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-prescan">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-icon">🧬</span>
+                <span class="ctrl-label">Shadow Profile</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-shadow">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="ctrl-row fortress-row">
+                <span class="ctrl-icon">⚔️</span>
+                <span class="ctrl-label ctrl-label-amber">Fortress Mode</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-fortress">
+                    <span class="slider fortress-slider"></span>
+                </label>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-icon">🔒</span>
+                <span class="ctrl-label">HTTPS-Only</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-https-upgrade">
+                    <span class="slider https-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <a href="dashboard.html" target="_blank" id="open-dashboard" class="btn-dashboard">
+            Dashboard →
+        </a>
+        <button id="btn-logout" class="btn-signout" style="display:none;">Sign Out</button>
 
     </div>
 
-    <script src="js/auth.js"></script>
-    <script src="js/threat_intel.js"></script>
-    <script src="js/dojo.js"></script>
-    <script src="js/popup.js"></script>
-</body>
+    <!-- VIEW: DOJO -->
+    <div id="view-dojo" class="content-area" style="display:none;">
+        <div class="dojo-card">
+            <div class="dojo-header">
+                <h3>Spot the Phish!</h3>
+                <p id="dojo-scenario">Analyze the URL below...</p>
+            </div>
+            <div class="url-display">
+                <div class="browser-bar">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                </div>
+                <div class="url-text" id="dojo-url">http://example.com</div>
+            </div>
+            <div class="dojo-actions">
+                <button class="btn-dojo btn-safe" id="btn-safe"><span>✅</span> Safe</button>
+                <button class="btn-dojo btn-phish" id="btn-phish"><span>🎣</span> Phish</button>
+            </div>
+            <div id="dojo-feedback" class="feedback-msg" style="display:none;"></div>
+            <button id="btn-next" class="btn-dashboard" style="margin-top:10px;display:none;">Next Challenge →</button>
+        </div>
+    </div>
 
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/threat_intel.js"></script>
+<script src="js/dojo.js"></script>
+<script src="js/popup.js"></script>
+</body>
 </html>

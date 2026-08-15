@@ -1343,12 +1343,19 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
             hostname = r.url;
         }
 
+        if (!hostname || hostname.includes(' ') || hostname.length < 3) return null;
+        
+        // Strip 'www.' to ensure we catch the apex domain and all subdomains
+        if (hostname.startsWith('www.')) {
+            hostname = hostname.replace(/^www\./, '');
+        }
+
         return {
             "id": 2000 + index, // IDs 2000+ for Community Blocklist
             "priority": 1,
             "action": {
                 "type": "redirect",
-                "redirect": { "extensionPath": "/banned.html?url=" + encodeURIComponent(r.url) }
+                "redirect": { "url": chrome.runtime.getURL("/banned.html") + "?url=" + encodeURIComponent(r.url) }
             },
             "condition": {
                 "urlFilter": "||" + hostname,
@@ -1380,7 +1387,12 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
             removeRuleIds: removeIds,
             addRules: newRules
         }, () => {
-            console.log(`[Oculus] Blocklist Updated: ${newRules.length} sites blocked globally.`);
+            if (chrome.runtime.lastError) {
+                console.error("[Oculus] ❌ Error updating dynamic rules:", chrome.runtime.lastError.message);
+                console.error("[Oculus] Problematic rules payload:", JSON.stringify(newRules));
+            } else {
+                console.log(`[Oculus] Blocklist Updated: ${newRules.length} sites blocked globally.`);
+            }
             if (callback) callback();
         });
     });

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="scout-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="glow-scout" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0284c7" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <path d="M50 8 L88 22 L88 58 C88 82 50 96 50 96 C50 96 12 82 12 58 L12 22 Z" fill="url(#scout-grad)" filter="url(#glow-scout)"/>
+  <path d="M50 14 L82 26 L82 56 C82 76 50 88 50 88 C50 88 18 76 18 56 L18 26 Z" fill="none" stroke="#bae6fd" stroke-width="2.5"/>
+  <path d="M35 45 L50 30 L65 45 M35 55 L50 40 L65 55 M35 65 L50 50 L65 65" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

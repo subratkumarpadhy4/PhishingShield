@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oculus Analytics Dashboard</title>
+    <!-- Cropper.js for profile picture cropping -->
+    <link rel="stylesheet" href="css/cropper.min.css">
     <style>
         :root {
             /* Professional Color Palette (Slate & Blue) */
@@ -86,8 +88,6 @@
 
         .tab-content {
             display: none;
-            /* Default hidden */
-            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .tab-content.active {
@@ -126,12 +126,12 @@
         /* --- SIDEBAR --- */
         aside {
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
+            background: #ffffff;
+            color: var(--dark);
             display: flex;
             flex-direction: column;
             padding: 20px 0;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+            border-right: 1px solid var(--border-color);
             z-index: 20;
         }
 
@@ -154,7 +154,7 @@
             font-size: 16px;
             font-weight: 700;
             letter-spacing: -0.5px;
-            color: white;
+            color: var(--dark);
         }
 
         /* Navigation */
@@ -187,15 +187,15 @@
 
         nav a:hover,
         nav a.active {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.05);
+            color: var(--primary);
+            background: #f1f5f9;
             border-left-color: var(--primary);
         }
 
         .user-panel {
             padding: 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(0, 0, 0, 0.1);
+            border-top: 1px solid var(--border-color);
+            background: #ffffff;
         }
 
         .user-panel h6 {
@@ -207,9 +207,9 @@
         }
 
         .user-panel p {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
-            color: white;
+            color: var(--dark);
             margin-bottom: 12px;
         }
 
@@ -364,79 +364,54 @@
             margin-bottom: 20px;
         }
 
-        /* --- RADAR --- */
-        .radar-container {
-            width: 160px;
-            height: 160px;
-            background: #0f172a;
-            border-radius: 50%;
-            position: relative;
+        /* --- LIVE DATA MATRIX (Replaces Nexus/Radar) --- */
+        .matrix-terminal {
+            width: 280px;
+            height: 180px;
+            background: #020617;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            color: #64748b;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
             margin: 0 auto;
-            border: 4px solid #1e293b;
-            box-shadow: 0 0 25px rgba(37, 99, 235, 0.2);
         }
-
-        .radar-grid {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(transparent 30%, rgba(37, 99, 235, 0.3) 31%, transparent 32%), radial-gradient(transparent 60%, rgba(37, 99, 235, 0.3) 61%, transparent 62%);
-            z-index: 1;
+        .matrix-header {
+            background: #0f172a;
+            padding: 6px 12px;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            align-items: center;
+            font-size: 10px;
         }
-
-        .radar-sweep {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: conic-gradient(transparent 270deg, rgba(37, 99, 235, 0.8) 360deg);
-            border-radius: 50%;
-            animation: radar-spin 2s linear infinite;
-            z-index: 2;
+        .matrix-dot { width:8px; height:8px; border-radius:50%; margin-right:6px; }
+        .matrix-dot.red { background: #ef4444; }
+        .matrix-dot.yellow { background: #f59e0b; }
+        .matrix-dot.green { background: #10b981; }
+        .matrix-body {
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: hidden;
+            position: relative;
+            text-align: left;
         }
-
-        .radar-blip {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #ef4444;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #ef4444;
-            opacity: 0;
-            z-index: 3;
-            display: none;
+        .matrix-text-green { color: #10b981; }
+        .matrix-text-blue { color: #3b82f6; }
+        .matrix-text-red { color: #ef4444; }
+        .matrix-cursor {
+            display: inline-block;
+            width: 6px;
+            background: #3b82f6;
+            animation: matrix-blink 1s step-end infinite;
         }
-
-        .radar-container.danger-mode .radar-blip {
-            display: block;
-            animation: blip-pulse 3s infinite;
-        }
-
-        .blip-1 {
-            top: 30%;
-            left: 65%;
-            animation-delay: 0.5s;
-        }
-
-        .blip-2 {
-            top: 75%;
-            left: 35%;
-            animation-delay: 1.8s;
-        }
-
-        @keyframes radar-spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
+        @keyframes matrix-blink { 50% { opacity: 0; } }
 
         @keyframes blip-pulse {
             0% {
@@ -462,7 +437,6 @@
 
         .tab-content {
             display: none;
-            animation: fadeIn 0.3s ease;
         }
 
         .tab-content.active {
@@ -1093,30 +1067,30 @@
             <img src="images/image.png" alt="Logo">
             <div>
                 <h2>Oculus</h2>
-                <span style="font-size: 11px; font-weight: 500; opacity: 0.7;">User Dashboard</span>
+                <span style="font-size: 11px; font-weight: 500; color: var(--secondary);">User Dashboard</span>
             </div>
         </div>
 
         <nav>
             <ul>
+                <li><a class="nav-item active" data-tab="tab-profile">👤 Profile & Settings</a></li>
+                <li><a class="nav-item" data-tab="tab-overview">📊 Overview</a></li>
                 <li><a class="nav-item" data-tab="tab-dojo">🥋 AI Dojo</a></li>
-                <li><a class="nav-item active" data-tab="tab-overview">📊 Overview</a></li>
-                <li><a class="nav-item" data-tab="tab-leaderboard">🏆 Leaderboard</a></li>
                 <li><a class="nav-item" data-tab="tab-logs">🛡️ Activity Log</a></li>
-                <li><a class="nav-item" data-tab="tab-threats">⚠️ Threats Encountered</a></li>
                 <li><a class="nav-item" data-tab="tab-reports">📢 My Reports</a></li>
-                <li><a class="nav-item" data-tab="tab-extensions">🧩 Extensions</a></li>
-                <li><a class="nav-item" data-tab="tab-visual-dna">🧬 Visual DNA</a></li>
                 <li><a class="nav-item" data-tab="tab-virustotal">🛡️ VirusTotal</a></li>
             </ul>
         </nav>
 
         <div class="user-panel">
-            <div id="user-info" style="display: none;">
-                <h6 id="user-rank">Rank: Novice</h6>
-                <p id="user-name">User</p>
-                <div style="font-size: 11px; margin-top: 5px; cursor: pointer; color: #94a3b8;" id="edit-profile-link">
-                    Edit Profile</div>
+            <div id="user-info" style="display: none; align-items: center; gap: 12px; flex-direction: row;">
+                <img id="sidebar-avatar" src="images/icon48.png" alt="Avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                <div style="flex: 1;">
+                    <h6 id="user-rank" style="margin-bottom: 2px;">Rank: Novice</h6>
+                    <p id="user-name" style="margin-bottom: 2px;">User</p>
+                    <div style="font-size: 11px; cursor: pointer; color: var(--primary); font-weight: 600;" id="open-profile-tab">
+                        Settings &raquo;</div>
+                </div>
             </div>
             <div id="guest-nav" style="display: none;">
                 <h6 style="color: #cbd5e1; margin:0;">Guest Mode</h6>
@@ -1127,7 +1101,7 @@
 
     <main>
         <header>
-            <h1 id="page-title">Overview</h1>
+            <h1 id="page-title">Profile & Settings</h1>
             <div style="display: flex; gap: 10px;">
                 <button id="theme-toggle"
                     style="background:none; border:none; font-size:20px; cursor:pointer;">🌙</button>
@@ -1140,201 +1114,153 @@
         </header>
 
         <!-- TAB: OVERVIEW -->
-        <div id="tab-overview" class="tab-content active">
-            <div class="stats-grid">
-                <!-- Rank Card -->
-                <div class="stat-card" style="align-items: center; text-align: center;">
-                    <img id="rank-badge" src="images/badge_novice.png" alt="Rank Badge"
-                        style="width:64px; height:64px; margin-bottom:10px;">
-                    <div class="stat-title">Current Rank</div>
-                    <div class="stat-value" id="user-rank-display" style="font-size: 20px; color: var(--primary);">
-                        Novice</div>
-                    <span style="font-size: 12px; color: var(--secondary);">Level <span id="user-level">1</span></span>
+        <div id="tab-overview" class="tab-content">
 
-                    <!-- New Privileges Section -->
-                    <div
-                        style="margin-top: 15px; width: 100%; text-align: left; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-                        <div
-                            style="font-size: 10px; font-weight: 700; color: var(--secondary); margin-bottom: 8px; text-transform:uppercase;">
-                            Clearance Level</div>
-
-                        <div id="feat-qr"
-                            style="font-size: 11px; margin-bottom: 4px; color: #94a3b8; display:flex; align-items:center; gap:6px;">
-                            <span>🔒</span> QR Scanner <span style="font-size:9px; opacity:0.7;">(Lvl 5)</span>
-                        </div>
-                        <div id="feat-cham"
-                            style="font-size: 11px; color: #94a3b8; display:flex; align-items:center; gap:6px;">
-                            <span>🔒</span> Chameleon <span style="font-size:9px; opacity:0.7;">(Lvl 20)</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- XP Card -->
-                <div class="stat-card" style="grid-column: span 2;">
-                    <div class="stat-title">Security Experience (XP)</div>
-                    <div
-                        style="background-color: #e2e8f0; height: 16px; border-radius: 10px; overflow: hidden; margin: 10px 0;">
-                        <div id="xp-bar"
-                            style="width: 0%; height: 100%; background-color: var(--primary); transition: width 0.5s;">
-                        </div>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; font-size: 13px; color: var(--secondary);">
-                        <span><span id="current-xp">0</span> XP</span>
-                        <span>Next Level: <span id="next-level-xp">100</span> XP</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stats-grid" style="grid-template-columns: 2fr 1fr;">
-                <!-- Radar Section -->
-                <div class="stat-card" style="flex-direction: row; gap: 30px; align-items: center; padding: 30px;">
+            <!-- Threat Console & Mini Stats -->
+            <div style="margin-bottom: 24px;">
+                <!-- Threat Console -->
+                <div style="background: #0b1121; border-radius: 16px; padding: 32px; display: flex; gap: 40px; align-items: center; border: 1px solid #1e293b; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);">
                     <div style="text-align: center;">
-                        <div class="radar-container" id="threat-radar">
-                            <div class="radar-grid"></div>
-                            <div class="radar-sweep"></div>
-                            <div class="radar-blip blip-1"></div>
-                            <div class="radar-blip blip-2"></div>
+                        <div class="matrix-terminal" id="threat-radar">
+                            <div class="matrix-header">
+                                <span class="matrix-dot red"></span>
+                                <span class="matrix-dot yellow"></span>
+                                <span class="matrix-dot green"></span>
+                                <span style="margin-left:8px; opacity:0.7;">sys.monitor.log</span>
+                            </div>
+                            <div class="matrix-body" id="matrix-log">
+                                <div>[SYS] Initialization complete.</div>
+                                <div class="matrix-text-green">[SEC] Firewall integrity: 100%</div>
+                                <div>[NET] Establishing encrypted tunnel...</div>
+                                <div class="matrix-text-blue">[ANL] Heuristics engine online.</div>
+                                <div id="matrix-active-line"><span class="matrix-cursor">_</span></div>
+                            </div>
                         </div>
-                        <div style="margin-top: 10px; font-size: 11px; font-weight: 700; color: var(--secondary);">LIVE
-                            THREAT MONITOR</div>
                     </div>
 
                     <div style="flex: 1;">
-                        <h4
-                            style="margin: 0 0 20px 0; color: var(--dark); text-transform: uppercase; font-size: 14px; letter-spacing: 1px; border-left: 4px solid var(--primary); padding-left: 15px;">
-                            Threat Intelligence
-                        </h4>
-
-                        <div style="margin-bottom: 15px;">
-                            <span
-                                style="display: block; font-size: 12px; color: var(--secondary); font-weight: 600;">STATUS</span>
-                            <span id="radar-status"
-                                style="color: var(--success); font-weight: bold; font-size: 16px;">Active
-                                Monitoring</span>
-                        </div>
-
-                        <div style="display: flex; gap: 30px;">
+                        <style>
+                            @keyframes livePulse {
+                                0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+                                70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+                                100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+                            }
+                        </style>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; animation: livePulse 2s infinite;"></div>
                             <div>
-                                <span style="display: block; font-size: 11px; color: var(--secondary);">THREATS
-                                    BLOCKED</span>
-                                <span id="radar-threat-count"
-                                    style="font-size: 20px; font-weight: 700; color: var(--dark);">0</span>
-                            </div>
-                            <div>
-                                <span style="display: block; font-size: 11px; color: var(--secondary);">LAST
-                                    INTERCEPTION</span>
-                                <span id="radar-last-threat"
-                                    style="font-size: 14px; font-weight: 600; color: var(--secondary);">None</span>
+                                <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px;">SYSTEM STATUS</div>
+                                <div id="radar-status" style="font-size: 18px; font-weight: 700; color: #10b981;">Active Monitoring</div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Quick Stats -->
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div class="stat-card safe" style="flex: 1; padding: 20px;">
-                        <div class="stat-title">Safe Streak</div>
-                        <div class="stat-value" id="safe-streak">0h</div>
-                    </div>
-                    <div class="stat-card" style="flex: 1; padding: 20px;">
-                        <div class="stat-title">Time Saved</div>
-                        <div class="stat-value" id="time-spent">0m</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card"
-                    style="grid-column: span 2; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <!-- RIGID CONTAINER TO PREVENT RESIZING -->
-                    <div
-                        style="width:220px; height:220px; min-width:220px; min-height:220px; flex-shrink:0; position:relative; display: flex; align-items: center; justify-content: center;">
-                        <canvas id="threat-pie-canvas" width="200" height="200"
-                            style="display:block; width:200px !important; height:200px !important;"></canvas>
-                    </div>
-
-                    <div
-                        style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; font-size:12px; font-weight:600; color:#64748b; width: 100%; max-width: 300px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:12px; height:6px; border-radius:2px; background:#dc3545;"></div> Phishing
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:12px; height:6px; border-radius:2px; background:#0d6efd;"></div> Safe
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:12px; height:6px; border-radius:2px; background:#ffc107;"></div>
-                            Suspicious
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 20px;">
+                            <div style="display: flex; gap: 40px;">
+                                <div>
+                                    <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">THREATS BLOCKED</div>
+                                    <div id="radar-threat-count" style="font-size: 28px; font-weight: 800; color: #fff; line-height: 1;">0</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">LAST INTERCEPTION</div>
+                                    <div id="radar-last-threat" style="font-size: 16px; font-weight: 600; color: #ef4444; font-family: monospace; background: rgba(239,68,68,0.1); padding: 4px 8px; border-radius: 4px;">None</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <!-- Date Range Label for Weekly View -->
-                    <div id="chart-date-range" style="margin-top:12px; font-size:11px; color:#94a3b8; font-weight:500;">
+                </div>
+            </div>
+
+            <!-- Bottom Row: Scan Details & Leaderboard -->
+            <div style="display: grid; grid-template-columns: 1.6fr 1.4fr; gap: 24px; align-items: start;">
+                <!-- Pie Chart -->
+                <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="font-size: 14px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Scan Details</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-scan-site" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">Site Scan</button>
+                            <button id="btn-scan-ext" style="background: white; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;">Extension Scan</button>
+                        </div>
+                    </div>
+                    
+                    <div id="scan-site-view" style="display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: center;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 40px; width: 100%;">
+                            <div style="width: 200px; height: 200px; min-width: 200px; min-height: 200px; position: relative;">
+                                <canvas id="threat-pie-canvas" width="200" height="200" style="display:block; width:100%; height:100%;"></canvas>
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 16px; min-width: 150px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; font-size: 13px; font-weight: 600; color: #334155;">
+                                        <div style="width: 12px; height: 12px; border-radius: 3px; background: #0d6efd;"></div> Safe
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; font-size: 13px; font-weight: 600; color: #334155;">
+                                        <div style="width: 12px; height: 12px; border-radius: 3px; background: #ffc107;"></div> Suspicious
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; font-size: 13px; font-weight: 600; color: #334155;">
+                                        <div style="width: 12px; height: 12px; border-radius: 3px; background: #dc3545;"></div> Phishing
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Total Scanned Block Moved Here -->
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #f8fafc; border-radius: 12px; min-width: 150px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Total Scanned</div>
+                                <div id="total-scanned" style="font-size: 32px; font-weight: 800; color: #3b82f6;">0</div>
+                            </div>
+                        </div>
+                        <div id="chart-date-range" style="margin-top: 24px; font-size: 12px; color: #94a3b8; font-weight: 500; width: 100%; text-align: left;"></div>
+                    </div>
+
+                    <div id="scan-ext-view" style="display: none; width: 100%;">
+                        <table class="log-table" style="width: 100%; margin-bottom: 24px;">
+                            <thead>
+                                <tr>
+                                    <th width="40%">Extension / ID</th>
+                                    <th width="15%">Risk Level</th>
+                                    <th width="45%">Threat Indicators</th>
+                                </tr>
+                            </thead>
+                            <tbody id="extension-table-body">
+                                <!-- JS populated -->
+                            </tbody>
+                        </table>
+
+                        <!-- Risk Guide Section -->
+                        <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h3 style="font-size: 16px; margin-bottom: 15px; color: var(--dark);">Risk Status Guide</h3>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                                <div style="padding: 15px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #ef4444;">
+                                    <span class="risk-badge risk-high" style="display:inline-block; margin-bottom: 8px;">HIGH_RISK</span>
+                                    <p style="font-size: 13px; color: #7f1d1d; line-height: 1.5;">Extensions from unknown sources or with suspicious permissions.</p>
+                                </div>
+                                <div style="padding: 15px; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                                    <span class="risk-badge" style="background:#f59e0b; color:white; padding:2px 8px; border-radius:12px; font-size:11px; display:inline-block; margin-bottom: 8px;">CAUTION</span>
+                                    <p style="font-size: 13px; color: #78350f; line-height: 1.5;">Extensions that are new or unverified. Monitor their activity.</p>
+                                </div>
+                                <div style="padding: 15px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981;">
+                                    <span class="risk-badge" style="background:#10b981; color:white; padding:2px 8px; border-radius:12px; font-size:11px; display:inline-block; margin-bottom: 8px;">TRUSTED</span>
+                                    <p style="font-size: 13px; color: #14532d; line-height: 1.5;">Verified extensions from known developers. Safe to use.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-title">Sites Scanned</div>
-                    <div class="stat-value" id="total-scanned">0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: THREATS ENCOUNTERED -->
-        <div id="tab-threats" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 class="section-title" style="margin: 0;">🛡️ Threats Encountered</h2>
-                <button id="refresh-threats" title="Refresh Threats"
-                    style="background: white; border: 1px solid var(--border-color); color: var(--secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-                    <span class="icon">🔄</span> Refresh
-                </button>
-            </div>
-
-            <div class="stat-card"
-                style="margin-bottom: 24px; flex-direction: row; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="stat-title">Total Weekly Threats</div>
-                    <div class="stat-value" id="weekly-threat-count" style="color: #ef4444;">0</div>
-                </div>
-                <div style="text-align: right;">
-                    <div class="stat-title" style="margin-bottom: 5px;">Current Week</div>
-                    <div style="font-weight: 700; color: #64748b; font-size: 16px;" id="threat-date-range">
-                        Calculating...
+                <!-- Leaderboard Card -->
+                <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <span style="font-size: 14px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px;">🏆 Top Defenders</span>
+                        <button id="refresh-leaderboard" title="Refresh Leaderboard" style="background: none; border: none; color: #94a3b8; cursor: pointer; transition: all 0.2s;">
+                            🔄
+                        </button>
                     </div>
-                    <div style="font-size: 11px; color: #94a3b8; margin-top: 5px;">
-                        Resets every Monday at 00:00 AM
+                    <div id="leaderboard-list" style="flex: 1; overflow-y: auto; max-height: 400px; padding-right: 8px;">
+                        Loading...
                     </div>
                 </div>
-            </div>
-
-            <table class="log-table" id="user-threat-table">
-                <thead>
-                    <tr>
-                        <th>Date & Time</th>
-                        <th>Malicious Site</th>
-                        <th>Threat Type</th>
-                        <th>Risk Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 30px;">
-                            No threats encountered this week. Stay safe!
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- TAB: LEADERBOARD -->
-        <div id="tab-leaderboard" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 class="section-title" style="margin: 0;">🏆 Top Defenders</h2>
-                <button id="refresh-leaderboard" title="Refresh Leaderboard"
-                    style="background: white; border: 1px solid var(--border-color); color: var(--secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-                    <span class="icon">🔄</span> Refresh
-                </button>
-            </div>
-            <div class="stat-card" style="padding: 0; overflow: hidden;">
-                <div id="leaderboard-list" style="padding: 20px;">Loading...</div>
             </div>
         </div>
 
@@ -1350,11 +1276,12 @@
                                 <th>Website</th>
                                 <th>Status</th>
                                 <th>Admin Feedback / AI Analysis</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="user-reports-body">
                             <tr>
-                                <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
+                                <td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">
                                     Loading your reports...
                                 </td>
                             </tr>
@@ -1428,165 +1355,10 @@
             </div>
         </div>
 
-        <!-- TAB: EXTENSIONS -->
-        <div id="tab-extensions" class="tab-content">
-            <h2 class="section-title">Extension Security Audit</h2>
-            <table class="log-table">
-                <thead>
-                    <tr>
-                        <th width="40%">Extension / ID</th>
-                        <th width="15%">Risk Level</th>
-                        <th width="45%">Threat Indicators</th>
-                    </tr>
-                </thead>
-                <tbody id="extension-table-body">
-                    <!-- JS populated -->
-                </tbody>
-            </table>
 
-            <!-- NEW: Risk Guide Section -->
-            <div
-                style="margin-top: 30px; background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-                <h3 style="font-size: 16px; margin-bottom: 15px; color: var(--dark);">Risk Status Guide</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                    <div
-                        style="padding: 15px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #ef4444;">
-                        <span class="risk-badge risk-high"
-                            style="display:inline-block; margin-bottom: 8px;">HIGH_RISK</span>
-                        <p style="font-size: 13px; color: #7f1d1d; line-height: 1.5;">
-                            Extensions from unknown sources or with suspicious permissions. Highly recommended to
-                            remove.
-                        </p>
-                    </div>
-                    <div
-                        style="padding: 15px; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                        <span class="risk-badge"
-                            style="background:#f59e0b; color:white; padding:2px 8px; border-radius:12px; font-size:11px; display:inline-block; margin-bottom: 8px;">CAUTION</span>
-                        <p style="font-size: 13px; color: #78350f; line-height: 1.5;">
-                            Extensions that are new or unverified. Use with care and monitor their activity.
-                        </p>
-                    </div>
-                    <div
-                        style="padding: 15px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981;">
-                        <span class="risk-badge"
-                            style="background:#10b981; color:white; padding:2px 8px; border-radius:12px; font-size:11px; display:inline-block; margin-bottom: 8px;">TRUSTED</span>
-                        <p style="font-size: 13px; color: #14532d; line-height: 1.5;">
-                            Verified extensions from known developers or the official Web Store. Safe to use.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- TAB: VISUAL DNA -->
-        <div id="tab-visual-dna" class="tab-content">
 
-            <!-- Hero Section -->
-            <div class="vdna-hero">
-                <div class="vdna-hero-content">
-                    <div class="vdna-helix-container" id="vdna-helix">
-                        <!-- JS Generated Helix Animation -->
-                    </div>
-                    <div class="vdna-hero-info">
-                        <h2>🧬 <span>Visual DNA</span> Engine</h2>
-                        <p>The Chameleon engine scans every page you visit, comparing its visual fingerprint against 200+ brand signatures to detect impersonation attacks in real time.</p>
-                        <div class="vdna-status-pill" id="vdna-status-pill">
-                            <div class="vdna-status-dot"></div>
-                            <span>Engine Active — Scanning All Pages</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stats Row -->
-            <div class="vdna-stats-row">
-                <div class="vdna-stat-card">
-                    <div class="vdna-stat-icon">🔬</div>
-                    <div class="vdna-stat-value" id="vdna-total-scans">0</div>
-                    <div class="vdna-stat-label">Pages Scanned</div>
-                </div>
-                <div class="vdna-stat-card">
-                    <div class="vdna-stat-icon">🚨</div>
-                    <div class="vdna-stat-value" id="vdna-clones-detected" style="color: #ef4444;">0</div>
-                    <div class="vdna-stat-label">Clones Detected</div>
-                </div>
-                <div class="vdna-stat-card">
-                    <div class="vdna-stat-icon">🛡️</div>
-                    <div class="vdna-stat-value" id="vdna-clean-pages" style="color: #10b981;">0</div>
-                    <div class="vdna-stat-label">Clean Pages</div>
-                </div>
-                <div class="vdna-stat-card">
-                    <div class="vdna-stat-icon">🧬</div>
-                    <div class="vdna-stat-value" id="vdna-signatures-count" style="color: #6366f1;">0</div>
-                    <div class="vdna-stat-label">Brand Signatures</div>
-                </div>
-            </div>
-
-            <!-- Two Column Layout: Brand Database + Recent Scans -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-
-                <!-- LEFT: Brand Signature Database -->
-                <div>
-                    <div class="vdna-section-header">
-                        <div class="vdna-section-title">
-                            🏷️ Brand Signature Database
-                            <span class="vdna-section-badge" id="vdna-db-count">0 Brands</span>
-                        </div>
-                    </div>
-                    <div class="vdna-category-tabs" id="vdna-cat-tabs">
-                        <!-- JS Populated -->
-                    </div>
-                    <div class="vdna-brand-grid" id="vdna-brand-grid">
-                        <!-- JS Populated -->
-                    </div>
-                </div>
-
-                <!-- RIGHT: Detection Timeline -->
-                <div class="vdna-timeline-container">
-                    <div class="vdna-section-header">
-                        <div class="vdna-section-title">
-                            📡 Scan Timeline
-                        </div>
-                        <button id="vdna-refresh-timeline" style="background: white; border: 1px solid var(--border-color); color: var(--secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-                            <span class="icon">🔄</span> Refresh
-                        </button>
-                    </div>
-                    <div class="vdna-timeline" id="vdna-timeline">
-                        <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 13px;">
-                            <div style="font-size: 40px; margin-bottom: 12px;">🧬</div>
-                            No scan data yet. Browse some websites to see Visual DNA analysis here.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- How It Works Section -->
-            <div style="margin-top: 28px; background: white; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color);">
-                <div class="vdna-section-title" style="margin-bottom: 16px;">🔍 How Visual DNA Detection Works</div>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-                    <div style="text-align: center; padding: 16px;">
-                        <div style="font-size: 32px; margin-bottom: 10px;">🌐</div>
-                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">1. Page Visit</div>
-                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">Every page you visit triggers an automatic Visual DNA scan</div>
-                    </div>
-                    <div style="text-align: center; padding: 16px;">
-                        <div style="font-size: 32px; margin-bottom: 10px;">🎨</div>
-                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">2. Extract Features</div>
-                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">Colors, logos, keywords, and title are extracted from the page</div>
-                    </div>
-                    <div style="text-align: center; padding: 16px;">
-                        <div style="font-size: 32px; margin-bottom: 10px;">🧬</div>
-                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">3. DNA Matching</div>
-                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">Features are compared against 200+ known brand signatures</div>
-                    </div>
-                    <div style="text-align: center; padding: 16px;">
-                        <div style="font-size: 32px; margin-bottom: 10px;">🚨</div>
-                        <div style="font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 4px;">4. Alert</div>
-                        <div style="font-size: 11px; color: var(--secondary); line-height: 1.5;">If a page mimics a brand but isn't official — instant alert</div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- TAB: PHISH-SIM DOJO -->
         <div id="tab-dojo" class="tab-content" style="height: 100%;">
@@ -1812,35 +1584,249 @@
             </div>
         </div>
 
-    </main>
+        <!-- TAB: PROFILE -->
+        <div id="tab-profile" class="tab-content active">
+            <!-- Hero Banner: Rank & XP -->
+            <div style="max-width: 800px; margin: 0 auto 24px auto;">
+                <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px; padding: 20px 24px; color: white; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);">
+                    <!-- Left: Rank -->
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="position: relative;">
+                            <img id="rank-badge" src="images/badge_novice.png" alt="Rank Badge" style="width: 60px; height: 60px; position: relative; z-index: 1;">
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Current Rank</div>
+                            <div id="user-rank-display" style="font-size: 24px; font-weight: 800; color: #fff; line-height: 1.1;">Novice</div>
+                            <div style="font-size: 13px; color: #60a5fa; font-weight: 600; margin-top: 2px;">Clearance Level <span id="user-level" style="color: white;">1</span></div>
+                        </div>
+                    </div>
 
-    <!-- PROFILE MODAL -->
-    <div id="profile-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-avatar-glow">👤</div>
-            <h3 style="margin: 25px 0 5px; color: var(--dark);">Edit Profile</h3>
-            <p style="margin: 0 0 25px; color: var(--secondary); font-size: 14px;">Update your personal details below.
-            </p>
-
-            <div class="form-group-modal">
-                <label>Full Name</label>
-                <input type="text" id="edit-name" class="form-input" placeholder="Your Name">
+                    <!-- Right: XP Bar -->
+                    <div style="flex: 1; max-width: 45%; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Security Experience</div>
+                                <div style="font-size: 16px; font-weight: 700; color: #fff;"><span id="current-xp">0</span> <span style="font-size: 12px; color: #94a3b8;">XP</span></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 11px; color: #94a3b8; font-weight: 600;">Next Level</div>
+                                <div style="font-size: 13px; font-weight: 700; color: #fff;"><span id="next-level-xp">100</span> XP</div>
+                            </div>
+                        </div>
+                        <div style="background-color: rgba(255,255,255,0.1); height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+                            <div id="xp-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%); border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group-modal">
-                <label>New Password <small style="opacity: 0.7;">(Leave blank to keep)</small></label>
-                <input type="password" id="edit-password" class="form-input" placeholder="••••••••">
+
+            <div style="background: white; border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm); max-width: 800px; margin: 0 auto;">
+                <!-- Cover Area -->
+                <div class="banner-wrapper" id="profile-page-banner" style="height: 150px; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); background-size: cover; background-position: center; position: relative; cursor: pointer;">
+                    <div class="banner-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; font-size: 14px; font-weight: 600;">
+                        <span style="margin-right: 8px;">🖼️</span> Change Cover
+                    </div>
+                </div>
+                
+                <div style="padding: 30px; padding-top: 0; position: relative;">
+                    <!-- Avatar -->
+                    <style>
+                        .avatar-wrapper:hover .avatar-overlay { opacity: 1 !important; }
+                        .banner-wrapper:hover .banner-overlay { opacity: 1 !important; }
+                        @keyframes spin { 100% { transform: rotate(360deg); } }
+                    </style>
+                    <div style="margin-top: -70px; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+                        <div class="avatar-wrapper" style="position: relative; display: inline-block; cursor: pointer; border-radius: 50%; overflow: hidden; border: 4px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 140px; height: 140px;">
+                            <img id="profile-page-avatar" src="images/icon48.png" style="width: 100%; height: 100%; object-fit: cover; background: white;" title="Click to change profile picture">
+                            <div class="avatar-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; font-size: 11px; font-weight: 600; pointer-events: none;">
+                                <span style="font-size: 20px; margin-bottom: 4px;">📸</span>
+                                Update
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                        <div>
+                            <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;" id="profile-page-name">User Name</h2>
+                            <p style="color: #475569; font-size: 14px; margin-bottom: 0;">Security Dashboard User</p>
+                        </div>
+                        <button id="btn-open-settings" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--secondary); font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s;" title="Settings">
+                            ⚙️
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div class="form-group-modal">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">First Name</label>
+                            <input type="text" id="tab-edit-firstname" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 500; color: #0f172a; background: #fff; transition: border-color 0.2s;" placeholder="First Name">
+                            <span id="error-firstname" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px; font-weight: 500;">Please enter your first name.</span>
+                        </div>
+                        <div class="form-group-modal">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">Last Name</label>
+                            <input type="text" id="tab-edit-lastname" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 500; color: #0f172a; background: #fff;" placeholder="Last Name">
+                        </div>
+                        <div class="form-group-modal">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">Email Address</label>
+                            <input type="email" id="tab-edit-email" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-weight: 500; color: #475569; background: #f8fafc;" readonly disabled>
+                        </div>
+                        <div class="form-group-modal">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">Mobile Number</label>
+                            <input type="text" id="tab-edit-mobile" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-weight: 500; color: #475569; background: #f8fafc;" placeholder="Feature coming soon..." readonly disabled>
+                        </div>
+                    </div>
+
+                    <input type="file" id="tab-edit-avatar" accept="image/*" style="display: none;">
+                    <input type="file" id="tab-edit-banner" accept="image/*" style="display: none;">
+                    
+                    <!-- Cropper Container -->
+                    <div id="tab-cropper-container" style="display: none; margin-top: 16px; margin-bottom: 20px; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            <button id="btn-crop-rotate-left" style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; color: #475569; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;">↺ Rotate Left</button>
+                            <button id="btn-crop-rotate-right" style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; color: #475569; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;">↻ Rotate Right</button>
+                        </div>
+                        <div style="max-height: 350px; overflow: hidden; border-radius: 8px; border: 1px solid #e2e8f0; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+                            <img id="tab-cropper-image" style="max-width: 100%; max-height: 350px; display: block;">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px; display: flex; gap: 12px;">
+                        <button id="tab-save-profile" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">Save Changes</button>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+                    <div style="display: flex; justify-content: flex-end;">
+                    </div>
+                </div>
             </div>
 
-            <button id="save-profile" class="btn-modal btn-primary">Save Changes</button>
-            <button id="cancel-profile" class="btn-modal btn-secondary">Cancel</button>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
-                <button id="logout-btn" class="btn-modal" style="background: var(--secondary); color: white;">Log
-                    Out</button>
-                <button id="delete-profile" class="btn-modal"
-                    style="background: #fee2e2; color: #dc2626; border: none;">Delete Account</button>
+            <!-- Settings Modal Overlay -->
+            <div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+                <div style="background: white; border-radius: 16px; width: 500px; max-width: 90%; min-height: 450px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+                    <div style="padding: 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0;">Settings</h2>
+                        <button id="btn-close-settings" style="background: none; border: none; font-size: 24px; color: #64748b; cursor: pointer;">&times;</button>
+                    </div>
+                    
+                    <div style="padding: 0;">
+                        <!-- Section: Password Security -->
+                        <div class="accordion-section" style="border-bottom: 1px solid #e2e8f0;">
+                            <div class="accordion-header" id="header-security" style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff;">
+                                <h3 style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">Password & Security</h3>
+                                <span style="font-size: 18px; color: #64748b; transition: transform 0.2s;" class="arrow">›</span>
+                            </div>
+                            <div id="content-security" style="display: none; padding: 0 24px 24px 24px;">
+                                
+                                <!-- Sub-Accordion: Change Password -->
+                                <div style="margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                                    <div class="accordion-header" id="header-change-pwd" style="padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #f8fafc;">
+                                        <label style="font-size: 14px; font-weight: 600; color: #334155; margin: 0; cursor: pointer;">Change Password</label>
+                                        <span style="font-size: 16px; color: #64748b; transition: transform 0.2s;" class="arrow">›</span>
+                                    </div>
+                                    <div id="content-change-pwd" style="display: none; padding: 16px; background: #fff; border-top: 1px solid #e2e8f0;">
+                                        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                                            <a href="#" id="link-forgot-password" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500;">Forgot Password? (OTP)</a>
+                                        </div>
+                                        <input type="password" id="settings-old-password" placeholder="Current Password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 8px; font-size: 14px;">
+                                        <input type="password" id="settings-new-password" placeholder="New Password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 12px; font-size: 14px;">
+                                        <button id="btn-change-password" style="padding: 8px 16px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Update Password</button>
+                                        
+                                        <!-- Mock OTP verification for Password -->
+                                        <div id="otp-password-flow" style="display: none; margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                                            <p style="font-size: 12px; color: #10b981; margin-top: 0; margin-bottom: 8px; font-weight: 600;">OTP Sent to your email!</p>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" id="otp-password-input" placeholder="Enter 6-digit code" style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" maxlength="6">
+                                                <button id="btn-verify-password-otp" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Verify</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    <div>
+                                        <h4 style="font-size: 14px; font-weight: 600; color: #334155; margin: 0 0 4px 0;">Turn off history</h4>
+                                        <p style="font-size: 12px; color: #64748b; margin: 0;">Disable activity logging across dashboard & extension.</p>
+                                    </div>
+                                    <label class="toggle-switch" style="margin-right: 0;">
+                                        <input type="checkbox" id="toggle-history">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Personal Details -->
+                        <div class="accordion-section">
+                            <div class="accordion-header" id="header-personal" style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff;">
+                                <h3 style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">Personal Details</h3>
+                                <span style="font-size: 18px; color: #64748b; transition: transform 0.2s;" class="arrow">›</span>
+                            </div>
+                            <div id="content-personal" style="display: none; padding: 0 24px 24px 24px;">
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 8px;">Change Email</label>
+                                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                        <input type="email" id="settings-edit-email" placeholder="New Email Address" style="flex: 1; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+                                        <button id="btn-send-email-otp" style="padding: 10px 16px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Send OTP</button>
+                                    </div>
+                                    <!-- Mock OTP verification for Email -->
+                                    <div id="otp-email-flow" style="display: none; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                                        <p style="font-size: 12px; color: #10b981; margin-top: 0; margin-bottom: 8px; font-weight: 600;">OTP Sent to new email!</p>
+                                        <div style="display: flex; gap: 8px;">
+                                            <input type="text" id="otp-email-input" placeholder="Enter 6-digit code" style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" maxlength="6">
+                                            <button id="btn-verify-email-otp" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Verify & Change</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 8px;">Mobile Number</label>
+                                    <input type="text" disabled placeholder="Feature coming soon..." style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: #f8fafc; color: #94a3b8;">
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Section: Active Sessions -->
+                        <div class="accordion-section" style="border-top: 1px solid #e2e8f0;">
+                            <div class="accordion-header" id="header-sessions" style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff;">
+                                <h3 style="font-size: 16px; font-weight: 600; color: #0f172a; margin: 0;">Logins & Sessions</h3>
+                                <span style="font-size: 18px; color: #64748b; transition: transform 0.2s;" class="arrow">›</span>
+                            </div>
+                            <div id="content-sessions" style="display: none; padding: 0 24px 24px 24px;">
+                                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+                                    <div style="padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <span style="font-size: 24px;">💻</span>
+                                            <div>
+                                                <div style="font-size: 14px; font-weight: 600; color: #0f172a;">MacBook Pro - Chrome</div>
+                                                <div style="font-size: 12px; color: #10b981; font-weight: 500;">Active Now • Current Session</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <span style="font-size: 24px;">📱</span>
+                                            <div>
+                                                <div style="font-size: 14px; font-weight: 600; color: #0f172a;">iPhone 14 - Safari</div>
+                                                <div style="font-size: 12px; color: #64748b;">Last active: 2 hours ago</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 12px; flex-direction: column;">
+                                    <button style="width: 100%; padding: 10px; background: white; color: #ef4444; border: 1px solid #f87171; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">Log out of all other devices</button>
+                                    <button id="tab-logout-btn" style="width: 100%; padding: 10px; background: white; border: 1px solid #fca5a5; color: #ef4444; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='white'">Log Out (Current Device)</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+
+    </main>
 
     <!-- PDF Export Hidden Container (re-used logic) -->
     <div id="report-info" style="display: none;"></div>
@@ -1848,6 +1834,7 @@
     <!-- PRINT REPORT CONTAINER -->
     <div id="print-report-container"></div>
 
+    <script src="js/cropper.min.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/threat_intel.js"></script>
     <script src="js/simple_charts.js"></script>

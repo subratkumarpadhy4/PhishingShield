@@ -140,6 +140,25 @@ app.post("/api/reports/cleanup", async (req, res) => {
     }
 });
 
+app.post("/api/reports/delete", async (req, res) => {
+    try {
+        await db.connectDB();
+        const { id } = req.body;
+        if (!id) return res.status(400).json({ success: false, message: "ID required" });
+        
+        const result = await db.Report.findOneAndDelete({ id });
+        if (result) {
+            console.log(`[API] Deleted report: ${id}`);
+            res.json({ success: true, message: "Report deleted" });
+        } else {
+            res.status(404).json({ success: false, message: "Report not found" });
+        }
+    } catch (error) {
+        console.error('[API] Report delete error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Users endpoints
 app.get("/api/users", async (req, res) => {
     try {

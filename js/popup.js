@@ -22,54 +22,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleShadow = document.getElementById('toggle-shadow');
     const toggleHttps = document.getElementById('toggle-https-upgrade');
 
-    // Dynamic UI State Updater (Step 1)
+    // Dynamic UI State Updater
     function updateDnsShieldUI(isActive) {
-        const desc       = document.getElementById('dns-shield-desc');
         const statusText = document.getElementById('status-text');
         const statusSub  = document.getElementById('status-sub');
         const statusDot  = document.getElementById('status-dot');
         const statusIcon = document.getElementById('status-icon');
 
-        if (desc) {
-            if (isActive) {
-                desc.textContent = "Active • DNS & URL pre-flight protection";
-                desc.style.color = "#34d399";
-            } else {
-                desc.textContent = "Disabled • Pre-flight protection off";
-                desc.style.color = "#64748b";
-            }
+        if (statusText) {
+            statusText.textContent = isActive ? 'System Secure' : 'Shield Inactive';
         }
-
-        if (statusText && statusIcon) {
-            if (isActive) {
-                statusText.textContent = "System Secure";
-                if (statusSub) statusSub.textContent = "Real-time protection active";
-                if (statusDot) statusDot.style.background = "#10b981";
-                statusIcon.className = "shield-container secure";
-            } else {
-                statusText.textContent = "Shield Inactive";
-                if (statusSub) statusSub.textContent = "DNS & URL protection disabled";
-                if (statusDot) statusDot.style.background = "#f59e0b";
-                statusIcon.className = "shield-container warning";
-            }
+        if (statusSub) {
+            statusSub.textContent = isActive ? 'Active' : 'Disabled';
+            statusSub.style.color = isActive ? '#10b981' : '#f59e0b';
+        }
+        if (statusDot) {
+            statusDot.style.background = isActive ? '#10b981' : '#f59e0b';
+        }
+        if (statusIcon) {
+            statusIcon.className = isActive ? 'shield-wrap secure' : 'shield-wrap warning';
         }
     }
 
-    function updateShadowProfileUI(isActive) {
-        const desc = document.getElementById('shadow-profile-desc');
-        if (desc) {
-            if (isActive) {
-                desc.textContent = "Active • Windows 10 / Anti-Fingerprint";
-                desc.style.color = "#34d399";
-            } else {
-                desc.textContent = "Disabled • Anti-Fingerprinting off";
-                desc.style.color = "#94a3b8";
-            }
-        }
+    function updateShadowProfileUI(_isActive) {
+        // No separate desc element in compact layout — toggle visual handles it
     }
 
     // Load Settings (Layer 2)
-    chrome.storage.local.get(['isDnsShieldActive', 'enablePreScan', 'enableFortress', 'logHistoryLimit', 'digital_dna_mode', 'httpsUpgradeEnabled'], (result) => {
+    chrome.storage.local.get(['isDnsShieldActive', 'enablePreScan', 'enableFortress', 'logHistoryLimit', 'digital_dna_mode', 'httpsUpgradeEnabled', 'historyDisabled'], (result) => {
         let isDnsActive = true;
         if (result.isDnsShieldActive !== undefined) {
             isDnsActive = result.isDnsShieldActive === true;
@@ -90,7 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const limitInput = document.getElementById('history-limit');
-        if (limitInput) limitInput.value = result.logHistoryLimit || 20;
+        if (limitInput) {
+            limitInput.value = result.logHistoryLimit || 20;
+            if (result.historyDisabled) {
+                // Hide the history limit container if history is disabled
+                if (limitInput.parentElement) limitInput.parentElement.style.display = 'none';
+            }
+        }
 
         if (toggleHttps) toggleHttps.checked = result.httpsUpgradeEnabled === true;
     });
@@ -184,6 +170,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (userInitial) {
                         const name = user.name || 'User';
                         userInitial.textContent = name.charAt(0).toUpperCase();
+                    }
+                    
+                    const popupAvatar = document.getElementById('popup-avatar');
+                    if (popupAvatar && user.avatar) {
+                        popupAvatar.src = user.avatar;
+                        popupAvatar.style.display = 'block';
+                        if (userInitial) userInitial.style.display = 'none';
+                    } else if (popupAvatar) {
+                        popupAvatar.style.display = 'none';
+                        if (userInitial) userInitial.style.display = 'block';
                     }
 
                     if (btnLogout) btnLogout.style.display = 'block';
