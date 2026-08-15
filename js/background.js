@@ -1413,7 +1413,6 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
         const removeIds = currentRules.filter(r => r.id >= 2000).map(r => r.id);
         
         console.log(`[Oculus] 🔄 Updating Blocklist... Removing ${removeIds.length} old rules. Adding ${newRules.length} new rules.`);
-        console.log(`[Oculus] 📄 New Rules Payload:`, JSON.stringify(newRules, null, 2));
 
         chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: removeIds,
