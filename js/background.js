@@ -1355,7 +1355,7 @@ function processBlocklist(serverReports, banned, bypassTokens, callback) {
             "priority": 1,
             "action": {
                 "type": "redirect",
-                "redirect": { "url": chrome.runtime.getURL("/banned.html") + "?url=" + encodeURIComponent(r.url) }
+                "redirect": { "extensionPath": "/banned.html" }
             },
             "condition": {
                 "urlFilter": "||" + hostname,
