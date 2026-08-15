@@ -90,6 +90,17 @@ app.get("/api/reports", async (req, res) => {
 app.post("/api/reports", async (req, res) => {
     try {
         await db.connectDB();
+        
+        // Prevent duplicate reports from the same user for the same URL
+        const existing = await db.Report.findOne({
+            url: req.body.url,
+            reporterEmail: req.body.reporterEmail
+        });
+        
+        if (existing) {
+            return res.status(400).json({ success: false, message: "You have already reported this site." });
+        }
+
         const report = new db.Report(req.body);
         await report.save();
         res.json({ success: true, report });

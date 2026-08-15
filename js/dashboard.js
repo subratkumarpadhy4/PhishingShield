@@ -555,10 +555,17 @@ function renderUserReportsTable(reports) {
                 }
                 
                 function removeRowLocally() {
-                    chrome.storage.local.get(['reportedSites'], (data) => {
+                    chrome.storage.local.get(['reportedSites', 'cachedGlobalReports'], (data) => {
                         let reports = data.reportedSites || [];
                         reports = reports.filter(rep => rep.id !== r.id);
-                        chrome.storage.local.set({ reportedSites: reports }, () => {
+                        
+                        let globalReports = data.cachedGlobalReports || [];
+                        globalReports = globalReports.filter(rep => rep.id !== r.id);
+
+                        chrome.storage.local.set({ 
+                            reportedSites: reports,
+                            cachedGlobalReports: globalReports
+                        }, () => {
                             tr.remove();
                             if (tbody.children.length === 0) {
                                 tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color: #64748b;">You haven\'t reported any sites yet.</td></tr>';
