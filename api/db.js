@@ -101,7 +101,9 @@ const UserSchema = new mongoose.Schema({
     _adminEditTime: { type: Number },
     _adminEditXP: { type: Number },
     otp: { type: String },
-    otpExpiry: { type: Number }
+    otpExpiry: { type: Number },
+    avatar: { type: String, default: null },  // base64 or URL profile picture
+    banner: { type: String, default: null }   // base64 or URL profile banner
 }, { timestamps: true });
 
 // Email already has unique index in schema

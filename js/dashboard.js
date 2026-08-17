@@ -1063,29 +1063,218 @@ function initProfileTab() {
         });
     }
 
-    // Mock OTP Flow: Password
-    const linkForgotPassword = document.getElementById('link-forgot-password');
-    const otpPasswordFlow = document.getElementById('otp-password-flow');
-    const btnVerifyPasswordOtp = document.getElementById('btn-verify-password-otp');
-    const otpPasswordInput = document.getElementById('otp-password-input');
-
-    if (linkForgotPassword && otpPasswordFlow) {
-        linkForgotPassword.addEventListener('click', (e) => {
+    // Password Visibility Toggles in Settings Modal
+    document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
+        btn.addEventListener('click', (e) => {
             e.preventDefault();
-            otpPasswordFlow.style.display = 'block';
+            const targetId = btn.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+
+            const eyeOpen = btn.querySelector('.eye-open');
+            const eyeClosed = btn.querySelector('.eye-closed');
+            if (eyeOpen && eyeClosed) {
+                eyeOpen.style.display = isPassword ? 'none' : 'block';
+                eyeClosed.style.display = isPassword ? 'block' : 'none';
+            }
+        });
+    });
+
+    // Real OTP & Password Change Flow
+    const pwdMsgEl = document.getElementById('settings-pwd-msg');
+    function showPwdMsg(msg, isSuccess = false) {
+        if (!pwdMsgEl) return;
+        pwdMsgEl.style.display = 'block';
+        pwdMsgEl.style.background = isSuccess ? '#ecfdf5' : '#fef2f2';
+        pwdMsgEl.style.color = isSuccess ? '#065f46' : '#991b1b';
+        pwdMsgEl.style.border = isSuccess ? '1px solid #a7f3d0' : '1px solid #fecaca';
+        pwdMsgEl.innerHTML = msg;
+    }
+
+    let isForgotFlow = false;
+
+    const btnChangePwd = document.getElementById('btn-change-password');
+    const oldPwdInput = document.getElementById('settings-old-password');
+    const newPwdInput = document.getElementById('settings-new-password');
+    const otpPasswordFlow = document.getElementById('otp-password-flow');
+    const otpPasswordInput = document.getElementById('otp-password-input');
+    const otpStatusEl = document.getElementById('otp-pwd-status');
+    const btnVerifyPasswordOtp = document.getElementById('btn-verify-password-otp');
+    const btnResendPasswordOtp = document.getElementById('btn-resend-password-otp');
+    const btnCancelPasswordOtp = document.getElementById('btn-cancel-password-otp');
+    const linkForgotPassword = document.getElementById('link-forgot-password');
+
+    function requestPasswordOtp() {
+        if (!newPwdInput) return;
+        const newPwd = newPwdInput.value.trim();
+        const oldPwd = oldPwdInput ? oldPwdInput.value.trim() : '';
+
+        if (!isForgotFlow && !oldPwd) {
+            showPwdMsg("⚠️ Please enter your current password first.");
+            if (oldPwdInput) oldPwdInput.focus();
+            return;
+        }
+
+        if (!newPwd || newPwd.length < 6) {
+            showPwdMsg("⚠️ New password must be at least 6 characters long.");
+            newPwdInput.focus();
+            return;
+        }
+
+        if (!isForgotFlow && oldPwd === newPwd) {
+            showPwdMsg("⚠️ New password must be different from current password.");
+            newPwdInput.focus();
+            return;
+        }
+
+        Auth.checkSession((user) => {
+            if (!user || !user.email) {
+                showPwdMsg("⚠️ You must be logged in to update your password.");
+                return;
+            }
+
+            if (btnChangePwd) {
+                btnChangePwd.disabled = true;
+                btnChangePwd.textContent = "Sending OTP...";
+            }
+
+            showPwdMsg("⏳ Generating verification code...", true);
+
+            fetch(`${API_BASE}/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, name: user.name || 'User' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (btnChangePwd) {
+                    btnChangePwd.disabled = false;
+                    btnChangePwd.textContent = "Request OTP to Update Password";
+                }
+
+                if (data.success) {
+                    if (otpPasswordFlow) otpPasswordFlow.style.display = 'block';
+                    let statusText = `✅ Verification code sent to <strong>${user.email}</strong>.`;
+                    if (data.simulatedOtp) {
+                        statusText += `<br><span style="color:#d97706; font-size:11px;">(Simulated OTP: <strong>${data.simulatedOtp}</strong>)</span>`;
+                    }
+                    if (otpStatusEl) otpStatusEl.innerHTML = statusText;
+                    if (otpPasswordInput) {
+                        otpPasswordInput.value = '';
+                        otpPasswordInput.focus();
+                    }
+                    showPwdMsg("OTP generated! Please enter the code below to complete password change.", true);
+                } else {
+                    showPwdMsg(`❌ Failed to send OTP: ${data.message || 'Please try again.'}`);
+                }
+            })
+            .catch(err => {
+                if (btnChangePwd) {
+                    btnChangePwd.disabled = false;
+                    btnChangePwd.textContent = "Request OTP to Update Password";
+                }
+                showPwdMsg("❌ Network error connecting to server. Please check your connection.");
+            });
         });
     }
-    
+
+    if (btnChangePwd) {
+        btnChangePwd.addEventListener('click', (e) => {
+            e.preventDefault();
+            requestPasswordOtp();
+        });
+    }
+
+    if (linkForgotPassword) {
+        linkForgotPassword.addEventListener('click', (e) => {
+            e.preventDefault();
+            isForgotFlow = true;
+            if (oldPwdInput) oldPwdInput.value = 'verified-via-otp';
+            const wrapperOld = document.getElementById('wrapper-old-password');
+            if (wrapperOld) wrapperOld.style.display = 'none';
+            showPwdMsg("ℹ️ Forgot Password Mode: Enter new password and verify with OTP.");
+            requestPasswordOtp();
+        });
+    }
+
+    if (btnResendPasswordOtp) {
+        btnResendPasswordOtp.addEventListener('click', (e) => {
+            e.preventDefault();
+            requestPasswordOtp();
+        });
+    }
+
+    if (btnCancelPasswordOtp) {
+        btnCancelPasswordOtp.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (otpPasswordFlow) otpPasswordFlow.style.display = 'none';
+            if (pwdMsgEl) pwdMsgEl.style.display = 'none';
+            isForgotFlow = false;
+            const wrapperOld = document.getElementById('wrapper-old-password');
+            if (wrapperOld) wrapperOld.style.display = 'block';
+            if (oldPwdInput) oldPwdInput.value = '';
+            if (newPwdInput) newPwdInput.value = '';
+        });
+    }
+
     if (btnVerifyPasswordOtp) {
-        btnVerifyPasswordOtp.addEventListener('click', () => {
-            if (otpPasswordInput.value.length === 6) {
-                alert("OTP Verified Successfully. You may now enter a new password without your current password.");
-                otpPasswordFlow.style.display = 'none';
-                document.getElementById('settings-old-password').disabled = true;
-                document.getElementById('settings-old-password').value = 'verified-via-otp';
-            } else {
-                alert("Invalid OTP code.");
+        btnVerifyPasswordOtp.addEventListener('click', (e) => {
+            e.preventDefault();
+            const otp = otpPasswordInput ? otpPasswordInput.value.trim() : '';
+            const newPwd = newPwdInput ? newPwdInput.value.trim() : '';
+
+            if (!otp || otp.length < 4) {
+                showPwdMsg("⚠️ Please enter the complete verification code.");
+                if (otpPasswordInput) otpPasswordInput.focus();
+                return;
             }
+
+            Auth.checkSession((user) => {
+                if (!user || !user.email) {
+                    showPwdMsg("⚠️ Session expired. Please log in again.");
+                    return;
+                }
+
+                btnVerifyPasswordOtp.disabled = true;
+                btnVerifyPasswordOtp.textContent = "Verifying...";
+
+                Auth.confirmReset(user.email, otp, newPwd, (response) => {
+                    btnVerifyPasswordOtp.disabled = false;
+                    btnVerifyPasswordOtp.textContent = "Verify & Change";
+
+                    if (response && response.success) {
+                        showPwdMsg("🎉 <strong>Password updated successfully!</strong>", true);
+                        if (oldPwdInput) oldPwdInput.value = '';
+                        if (newPwdInput) newPwdInput.value = '';
+                        if (otpPasswordInput) otpPasswordInput.value = '';
+                        isForgotFlow = false;
+                        const wrapperOld = document.getElementById('wrapper-old-password');
+                        if (wrapperOld) wrapperOld.style.display = 'block';
+
+                        // Sync password in local storage
+                        chrome.storage.local.get(['currentUser', 'users'], (res) => {
+                            let cu = res.currentUser;
+                            let users = res.users || [];
+                            if (cu && cu.email === user.email) {
+                                cu.password = newPwd;
+                                const idx = users.findIndex(u => u.email === user.email);
+                                if (idx !== -1) users[idx].password = newPwd;
+                                chrome.storage.local.set({ currentUser: cu, users: users });
+                            }
+                        });
+
+                        setTimeout(() => {
+                            if (otpPasswordFlow) otpPasswordFlow.style.display = 'none';
+                            if (pwdMsgEl) pwdMsgEl.style.display = 'none';
+                        }, 3000);
+                    } else {
+                        showPwdMsg(`❌ ${response && response.message ? response.message : 'Invalid code or verification failed.'}`);
+                    }
+                });
+            });
         });
     }
 
@@ -1312,46 +1501,34 @@ function updateStats(log) {
         }
     }
 
-    // --- NEW: Radar Visualization Logic ---
-    const matrixLog = document.getElementById('matrix-log');
-    if (matrixLog) {
-        const absoluteLast = [...log].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+    // --- Update new Overview stat cards ---
+    // Sites Scanned
+    const elSitesScanned = document.getElementById('ov-sites-scanned');
+    if (elSitesScanned) elSitesScanned.textContent = log.length.toLocaleString();
 
-        // Remove active line cursor block
-        const activeLine = document.getElementById('matrix-active-line');
-        if (activeLine) activeLine.remove();
-
-        const newLine = document.createElement('div');
-
-        if (absoluteLast && absoluteLast.score > 20) {
-            newLine.className = 'matrix-text-red';
-            newLine.textContent = `[WARN] Intercepted threat: ${absoluteLast.domain || 'Unknown'}`;
-            if (document.getElementById('radar-status')) {
-                document.getElementById('radar-status').innerHTML =
-                    '<span style="display:inline-block; width:8px; height:8px; background:#dc3545; border-radius:50%; margin-right:5px; animation: blink 0.5s infinite;"></span> Threat Detected!';
-                document.getElementById('radar-status').style.color = '#dc3545';
-            }
-        } else {
-            newLine.className = 'matrix-text-green';
-            newLine.textContent = `[SEC] Scan complete. No anomalies.`;
-            if (document.getElementById('radar-status')) {
-                document.getElementById('radar-status').innerHTML =
-                    '<span style="display:inline-block; width:8px; height:8px; background:#28a745; border-radius:50%; margin-right:5px; animation: blink 2s infinite;"></span> Active Monitoring';
-                document.getElementById('radar-status').style.color = '#28a745';
-            }
+    // Protection Score: 100% if no threats, reduce by 5% per threat (min 0%)
+    const protEl = document.getElementById('ov-protection-score');
+    if (protEl) {
+        const score = Math.max(0, 100 - (threats * 5));
+        protEl.textContent = score + '%';
+        const protSubEl = protEl.parentElement && protEl.parentElement.querySelector('.ov-stat-sub');
+        if (protSubEl) {
+            if (score >= 90) protSubEl.textContent = 'Excellent';
+            else if (score >= 70) protSubEl.textContent = 'Good';
+            else if (score >= 50) protSubEl.textContent = 'Fair';
+            else protSubEl.textContent = 'At Risk';
         }
+    }
 
-        matrixLog.appendChild(newLine);
-        
-        // Add cursor back
-        const cursorLine = document.createElement('div');
-        cursorLine.id = 'matrix-active-line';
-        cursorLine.innerHTML = '<span class="matrix-cursor">_</span>';
-        matrixLog.appendChild(cursorLine);
-
-        // Keep log from growing forever
-        while (matrixLog.children.length > 6) {
-            matrixLog.removeChild(matrixLog.firstChild);
+    // Radar status text (the pulsing dot is CSS-only in the new hero card)
+    const radarStatusEl = document.getElementById('radar-status');
+    if (radarStatusEl) {
+        if (threats > 0) {
+            radarStatusEl.textContent = 'Threat Detected!';
+            radarStatusEl.style.color = '#ef4444';
+        } else {
+            radarStatusEl.textContent = 'Active Monitoring';
+            radarStatusEl.style.color = '#10b981';
         }
     }
 }

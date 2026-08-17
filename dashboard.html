@@ -364,54 +364,7 @@
             margin-bottom: 20px;
         }
 
-        /* --- LIVE DATA MATRIX (Replaces Nexus/Radar) --- */
-        .matrix-terminal {
-            width: 280px;
-            height: 180px;
-            background: #020617;
-            border-radius: 8px;
-            border: 1px solid #1e293b;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            color: #64748b;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-            margin: 0 auto;
-        }
-        .matrix-header {
-            background: #0f172a;
-            padding: 6px 12px;
-            border-bottom: 1px solid #1e293b;
-            display: flex;
-            align-items: center;
-            font-size: 10px;
-        }
-        .matrix-dot { width:8px; height:8px; border-radius:50%; margin-right:6px; }
-        .matrix-dot.red { background: #ef4444; }
-        .matrix-dot.yellow { background: #f59e0b; }
-        .matrix-dot.green { background: #10b981; }
-        .matrix-body {
-            padding: 12px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            overflow-y: hidden;
-            position: relative;
-            text-align: left;
-        }
-        .matrix-text-green { color: #10b981; }
-        .matrix-text-blue { color: #3b82f6; }
-        .matrix-text-red { color: #ef4444; }
-        .matrix-cursor {
-            display: inline-block;
-            width: 6px;
-            background: #3b82f6;
-            animation: matrix-blink 1s step-end infinite;
-        }
-        @keyframes matrix-blink { 50% { opacity: 0; } }
+
 
         @keyframes blip-pulse {
             0% {
@@ -1116,55 +1069,166 @@
         <!-- TAB: OVERVIEW -->
         <div id="tab-overview" class="tab-content">
 
-            <!-- Threat Console & Mini Stats -->
-            <div style="margin-bottom: 24px;">
-                <!-- Threat Console -->
-                <div style="background: #0b1121; border-radius: 16px; padding: 32px; display: flex; gap: 40px; align-items: center; border: 1px solid #1e293b; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);">
-                    <div style="text-align: center;">
-                        <div class="matrix-terminal" id="threat-radar">
-                            <div class="matrix-header">
-                                <span class="matrix-dot red"></span>
-                                <span class="matrix-dot yellow"></span>
-                                <span class="matrix-dot green"></span>
-                                <span style="margin-left:8px; opacity:0.7;">sys.monitor.log</span>
+            <!-- Hero Stats Banner -->
+            <div style="margin-bottom: 28px;">
+                <style>
+                    @keyframes livePulse {
+                        0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+                        70% { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
+                        100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+                    }
+                    @keyframes heroFadeIn {
+                        from { opacity:0; transform:translateY(-14px); }
+                        to { opacity:1; transform:translateY(0); }
+                    }
+                    @keyframes statSlideUp {
+                        from { opacity:0; transform:translateY(20px); }
+                        to { opacity:1; transform:translateY(0); }
+                    }
+                    @keyframes gradientShift {
+                        0%   { background-position: 0% 50%; }
+                        50%  { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                    @keyframes shieldFloat {
+                        0%, 100% { transform: translateY(0px) rotate(-3deg); }
+                        50%       { transform: translateY(-8px) rotate(3deg); }
+                    }
+                    @keyframes particleDrift {
+                        0%   { transform: translateY(0) translateX(0); opacity:0.4; }
+                        50%  { opacity:0.8; }
+                        100% { transform: translateY(-60px) translateX(20px); opacity:0; }
+                    }
+                    .ov-hero-card {
+                        position: relative;
+                        background: linear-gradient(135deg, #f8fafc 0%, #f0f6ff 50%, #f8fafc 100%);
+                        border-radius: 20px;
+                        padding: 36px 40px;
+                        border: 1px solid #e2e8f0;
+                        box-shadow: 0 4px 24px -4px rgba(37,99,235,0.10), 0 1px 3px rgba(0,0,0,0.06);
+                        overflow: hidden;
+                        animation: heroFadeIn 0.6s ease both;
+                    }
+                    .ov-hero-card::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        border-radius: 20px;
+                        padding: 1px;
+                        background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(16,185,129,0.10), rgba(99,102,241,0.12));
+                        background-size: 200% 200%;
+                        animation: gradientShift 6s ease infinite;
+                        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                        -webkit-mask-composite: xor;
+                        mask-composite: exclude;
+                        pointer-events: none;
+                    }
+                    .ov-particle {
+                        position: absolute;
+                        width: 3px; height: 3px;
+                        border-radius: 50%;
+                        background: rgba(37,99,235,0.2);
+                        animation: particleDrift linear infinite;
+                        pointer-events: none;
+                    }
+                    .ov-stat-card {
+                        background: #ffffff;
+                        border: 1px solid #e8eef6;
+                        border-radius: 14px;
+                        padding: 20px 24px;
+                        flex: 1;
+                        animation: statSlideUp 0.5s ease both;
+                        transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+                        cursor: default;
+                        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+                    }
+                    .ov-stat-card:hover {
+                        transform: translateY(-3px);
+                        background: #f8faff;
+                        border-color: rgba(37,99,235,0.25);
+                        box-shadow: 0 6px 20px -4px rgba(37,99,235,0.12);
+                    }
+                    .ov-stat-card:nth-child(1) { animation-delay: 0.1s; }
+                    .ov-stat-card:nth-child(2) { animation-delay: 0.2s; }
+                    .ov-stat-card:nth-child(3) { animation-delay: 0.3s; }
+                    .ov-stat-icon {
+                        font-size: 22px;
+                        margin-bottom: 10px;
+                        display: inline-block;
+                    }
+                    .ov-stat-label {
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 1.5px;
+                        color: #94a3b8;
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                    }
+                    .ov-stat-value {
+                        font-size: 30px;
+                        font-weight: 800;
+                        line-height: 1;
+                        color: #0f172a;
+                    }
+                    .ov-stat-sub {
+                        font-size: 11px;
+                        color: #94a3b8;
+                        margin-top: 4px;
+                        font-weight: 500;
+                    }
+                </style>
+
+                <div class="ov-hero-card">
+                    <!-- Background particles -->
+                    <div class="ov-particle" style="left:10%; bottom:10%; animation-duration:4s; animation-delay:0s;"></div>
+                    <div class="ov-particle" style="left:25%; bottom:5%; animation-duration:5s; animation-delay:1s; background:rgba(16,185,129,0.5);"></div>
+                    <div class="ov-particle" style="left:60%; bottom:15%; animation-duration:3.5s; animation-delay:0.5s;"></div>
+                    <div class="ov-particle" style="left:80%; bottom:8%; animation-duration:6s; animation-delay:2s; background:rgba(139,92,246,0.5);"></div>
+                    <div class="ov-particle" style="left:45%; bottom:20%; animation-duration:4.5s; animation-delay:1.5s;"></div>
+
+                    <!-- Top row: Status + Shield -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;">
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <!-- Shield icon -->
+                            <div style="width:52px; height:52px; border-radius:14px; background:linear-gradient(135deg,#2563eb,#06b6d4); display:flex; align-items:center; justify-content:center; font-size:26px; box-shadow:0 4px 16px rgba(37,99,235,0.25); animation:shieldFloat 4s ease-in-out infinite;">🛡️</div>
+                            <div>
+                                <div style="font-size:11px; font-weight:700; color:#94a3b8; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">System Status</div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:10px; height:10px; border-radius:50%; background:#10b981; flex-shrink:0; animation:livePulse 2s infinite;"></div>
+                                    <div id="radar-status" style="font-size:20px; font-weight:800; color:#10b981; letter-spacing:-0.3px;">Active Monitoring</div>
+                                </div>
                             </div>
-                            <div class="matrix-body" id="matrix-log">
-                                <div>[SYS] Initialization complete.</div>
-                                <div class="matrix-text-green">[SEC] Firewall integrity: 100%</div>
-                                <div>[NET] Establishing encrypted tunnel...</div>
-                                <div class="matrix-text-blue">[ANL] Heuristics engine online.</div>
-                                <div id="matrix-active-line"><span class="matrix-cursor">_</span></div>
-                            </div>
+                        </div>
+                        <!-- Last Interception badge -->
+                        <div style="text-align:right;">
+                            <div style="font-size:10px; font-weight:700; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">Last Interception</div>
+                            <div id="radar-last-threat" style="font-size:14px; font-weight:700; color:#ef4444; font-family:'Courier New',monospace; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.18); padding:6px 14px; border-radius:8px; letter-spacing:0.5px;">None</div>
                         </div>
                     </div>
 
-                    <div style="flex: 1;">
-                        <style>
-                            @keyframes livePulse {
-                                0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-                                70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-                                100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-                            }
-                        </style>
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-                            <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; animation: livePulse 2s infinite;"></div>
-                            <div>
-                                <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px;">SYSTEM STATUS</div>
-                                <div id="radar-status" style="font-size: 18px; font-weight: 700; color: #10b981;">Active Monitoring</div>
-                            </div>
+                    <!-- Stat cards row -->
+                    <div style="display:flex; gap:14px;">
+                        <!-- Threats Blocked -->
+                        <div class="ov-stat-card">
+                            <div class="ov-stat-icon">🚫</div>
+                            <div class="ov-stat-label">Threats Blocked</div>
+                            <div id="radar-threat-count" class="ov-stat-value" style="color:#ef4444;">0</div>
+                            <div class="ov-stat-sub">All time</div>
                         </div>
-
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 20px;">
-                            <div style="display: flex; gap: 40px;">
-                                <div>
-                                    <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">THREATS BLOCKED</div>
-                                    <div id="radar-threat-count" style="font-size: 28px; font-weight: 800; color: #fff; line-height: 1;">0</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">LAST INTERCEPTION</div>
-                                    <div id="radar-last-threat" style="font-size: 16px; font-weight: 600; color: #ef4444; font-family: monospace; background: rgba(239,68,68,0.1); padding: 4px 8px; border-radius: 4px;">None</div>
-                                </div>
-                            </div>
+                        <!-- Sites Scanned -->
+                        <div class="ov-stat-card">
+                            <div class="ov-stat-icon">🔍</div>
+                            <div class="ov-stat-label">Sites Scanned</div>
+                            <div id="ov-sites-scanned" class="ov-stat-value" style="color:#2563eb;">0</div>
+                            <div class="ov-stat-sub">This session</div>
+                        </div>
+                        <!-- Protection Score -->
+                        <div class="ov-stat-card">
+                            <div class="ov-stat-icon">⚡</div>
+                            <div class="ov-stat-label">Protection Score</div>
+                            <div id="ov-protection-score" class="ov-stat-value" style="color:#10b981;">100%</div>
+                            <div class="ov-stat-sub">Excellent</div>
                         </div>
                     </div>
                 </div>
@@ -1725,19 +1789,60 @@
                                         <span style="font-size: 16px; color: #64748b; transition: transform 0.2s;" class="arrow">›</span>
                                     </div>
                                     <div id="content-change-pwd" style="display: none; padding: 16px; background: #fff; border-top: 1px solid #e2e8f0;">
-                                        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-                                            <a href="#" id="link-forgot-password" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500;">Forgot Password? (OTP)</a>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <span style="font-size: 12px; color: #64748b; font-weight: 500;">Enter your details to change password</span>
+                                            <a href="#" id="link-forgot-password" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;">Forgot Password? (OTP)</a>
                                         </div>
-                                        <input type="password" id="settings-old-password" placeholder="Current Password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 8px; font-size: 14px;">
-                                        <input type="password" id="settings-new-password" placeholder="New Password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 12px; font-size: 14px;">
-                                        <button id="btn-change-password" style="padding: 8px 16px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Update Password</button>
+
+                                        <!-- Message Notification Area -->
+                                        <div id="settings-pwd-msg" style="display: none; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; font-weight: 500;"></div>
+
+                                        <!-- Current Password Field with Eye Toggle -->
+                                        <div id="wrapper-old-password" style="position: relative; margin-bottom: 10px;">
+                                            <input type="password" id="settings-old-password" placeholder="Current Password" autocomplete="current-password" style="width: 100%; padding: 10px 42px 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                                            <button type="button" class="btn-toggle-pwd" data-target="settings-old-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b; padding: 4px; display: flex; align-items: center;" title="Show/Hide Password">
+                                                <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                                <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <!-- New Password Field with Eye Toggle -->
+                                        <div style="position: relative; margin-bottom: 12px;">
+                                            <input type="password" id="settings-new-password" placeholder="New Password (min 6 characters)" autocomplete="new-password" style="width: 100%; padding: 10px 42px 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                                            <button type="button" class="btn-toggle-pwd" data-target="settings-new-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b; padding: 4px; display: flex; align-items: center;" title="Show/Hide Password">
+                                                <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                                <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <button id="btn-change-password" style="padding: 9px 18px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Request OTP to Update Password</button>
                                         
-                                        <!-- Mock OTP verification for Password -->
-                                        <div id="otp-password-flow" style="display: none; margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
-                                            <p style="font-size: 12px; color: #10b981; margin-top: 0; margin-bottom: 8px; font-weight: 600;">OTP Sent to your email!</p>
-                                            <div style="display: flex; gap: 8px;">
-                                                <input type="text" id="otp-password-input" placeholder="Enter 6-digit code" style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" maxlength="6">
-                                                <button id="btn-verify-password-otp" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Verify</button>
+                                        <!-- OTP verification for Password Change -->
+                                        <div id="otp-password-flow" style="display: none; margin-top: 14px; padding: 14px; background: #f0f7ff; border-radius: 10px; border: 1px solid #bfdbfe;">
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                                <span style="font-size: 16px;">📧</span>
+                                                <strong id="otp-pwd-title" style="font-size: 13px; color: #1e40af;">Verification Code Sent</strong>
+                                            </div>
+                                            <p id="otp-pwd-status" style="font-size: 12px; color: #475569; margin: 0 0 10px 0; line-height: 1.4;">Please enter the verification code sent to your registered email.</p>
+                                            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                                <input type="text" id="otp-password-input" placeholder="Enter code" style="flex: 1; padding: 9px 12px; border: 1px solid #93c5fd; border-radius: 6px; font-size: 14px; font-weight: 600; letter-spacing: 2px; text-align: center;" maxlength="6">
+                                                <button id="btn-verify-password-otp" style="padding: 9px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Verify & Change</button>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <button type="button" id="btn-resend-password-otp" style="background: none; border: none; color: #2563eb; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;">↻ Resend Code</button>
+                                                <button type="button" id="btn-cancel-password-otp" style="background: none; border: none; color: #64748b; font-size: 12px; cursor: pointer; padding: 0;">Cancel</button>
                                             </div>
                                         </div>
                                     </div>
